@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Forms.VisualStyles;
 
 namespace ThreadedMosaic
 {
@@ -18,6 +19,9 @@ namespace ThreadedMosaic
         {
             var dialog = new FolderBrowserDialog();
             DialogResult result = dialog.ShowDialog();
+            SeedFolderTextbox.Text = dialog.SelectedPath;
+
+            SeedFolderTextbox.CaretIndex = dialog.SelectedPath.Length;
         }
     }
 }

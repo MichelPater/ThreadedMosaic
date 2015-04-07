@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Windows;
 using System.Windows.Forms;
 
@@ -30,23 +31,48 @@ namespace ThreadedMosaic
 
         private void OutputImageButton_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new FolderBrowserDialog();
-            DialogResult result = dialog.ShowDialog();
-            OutputImageTextbox.Text = dialog.SelectedPath;
+            Microsoft.Win32.SaveFileDialog dlg = new Microsoft.Win32.SaveFileDialog();
 
+            dlg.DefaultExt = ".jpg"; // Default file extension
+            dlg.Filter = "Image files (.jpg)|*.jpg"; // Filter files by extension
+
+            // Show save file dialog box
+            Nullable<bool> result = dlg.ShowDialog();
+
+            // Process save file dialog box results
+            if (result == true)
+            {
+                // Save document
+                OutputImageTextbox.Text = dlg.FileName;
+            }
         }
 
         private void ConvertButton_Click(object sender, RoutedEventArgs e)
         {
-            if (Uri.IsWellFormedUriString(SeedFolderTextbox.Text, UriKind.Absolute) &&
-                Uri.IsWellFormedUriString(MasterImageTextBox.Text, UriKind.Absolute) &&
-                Uri.IsWellFormedUriString(OutputImageTextbox.Text, UriKind.Absolute))
+            if (CheckValidPath(SeedFolderTextbox.Text)
+                && CheckValidPath(MasterImageTextBox.Text)
+                && CheckValidPath(OutputImageTextbox.Text))
             {
                 //start analysis
+                
             }
             else
             {
                 //Display error
+            }
+        }
+
+        private Boolean CheckValidPath(String pathname)
+        {
+            try
+            {
+                Path.GetFullPath(pathname);
+                return true;
+            }
+            catch (Exception)
+            {
+
+                return false;
             }
         }
     }

@@ -3,7 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MainWindow"
         Height="350"
-        Width="525">
+        Width="525"
+        ResizeMode="NoResize">
     <Grid>
         <GroupBox Header="Set Seed Image Folder"
                   HorizontalAlignment="Left"
@@ -61,8 +62,8 @@
                         Margin="392,10,0,0"
                         VerticalAlignment="Top"
                         Width="75"
-                        Click="SeedFolderButton_Click"
-                        RenderTransformOrigin="-0.839,-3.529" />
+                        RenderTransformOrigin="-0.839,-3.529"
+                        Click="MasterImageButton_Click" />
 
             </Grid>
 
@@ -93,7 +94,7 @@
                         Margin="392,10,0,0"
                         VerticalAlignment="Top"
                         Width="75"
-                        Click="SeedFolderButton_Click"
+                        Click="OutputImageButton_Click"
                         RenderTransformOrigin="-0.839,-3.529" />
             </Grid>
         </GroupBox>

@@ -12,7 +12,6 @@ namespace ThreadedMosaic
         public MainWindow()
         {
             InitializeComponent();
-            //This is a comment
         }
 
         private void SeedFolderButton_Click(object sender, RoutedEventArgs e)

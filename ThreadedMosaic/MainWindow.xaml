@@ -104,6 +104,13 @@
                      Margin="10,280,0,0"
                      VerticalAlignment="Top"
                      Width="497" />
+        <Button x:Name="ConvertButton"
+                Content="Convert"
+                HorizontalAlignment="Left"
+                Margin="219,247,0,0"
+                VerticalAlignment="Top"
+                Width="75"
+                Click="ConvertButton_Click" />
 
     </Grid>
 </Window>

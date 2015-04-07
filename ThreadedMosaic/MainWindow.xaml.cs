@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using System;
+using System.Windows;
 using System.Windows.Forms;
 
 namespace ThreadedMosaic
@@ -32,6 +33,21 @@ namespace ThreadedMosaic
             var dialog = new FolderBrowserDialog();
             DialogResult result = dialog.ShowDialog();
             OutputImageTextbox.Text = dialog.SelectedPath;
+
+        }
+
+        private void ConvertButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (Uri.IsWellFormedUriString(SeedFolderTextbox.Text, UriKind.Absolute) &&
+                Uri.IsWellFormedUriString(MasterImageTextBox.Text, UriKind.Absolute) &&
+                Uri.IsWellFormedUriString(OutputImageTextbox.Text, UriKind.Absolute))
+            {
+                //start analysis
+            }
+            else
+            {
+                //Display error
+            }
         }
     }
 }

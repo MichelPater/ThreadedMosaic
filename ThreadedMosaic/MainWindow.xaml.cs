@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
 
@@ -13,6 +15,7 @@ namespace ThreadedMosaic
         public MainWindow()
         {
             InitializeComponent();
+            InitFields();
         }
 
         private void SeedFolderButton_Click(object sender, RoutedEventArgs e)
@@ -49,16 +52,26 @@ namespace ThreadedMosaic
 
         private void ConvertButton_Click(object sender, RoutedEventArgs e)
         {
+            //Check Seed and Master Folders
             if (CheckValidPath(SeedFolderTextbox.Text)
-                && CheckValidPath(MasterImageTextBox.Text)
-                && CheckValidPath(OutputImageTextbox.Text))
+                && CheckValidPath(MasterImageTextBox.Text))
             {
-                //start analysis
-                
+                //Check if there are files in the SeedFolder
+                var files = Directory.EnumerateFiles(SeedFolderTextbox.Text, "*.*", SearchOption.TopDirectoryOnly)
+                    .Where(s => s.EndsWith(".png") || s.EndsWith(".jpg"));
+                if (files.Any())
+                {
+                    //start analysis
+                    Mosaic mosaic = new Mosaic(files.ToList());
+                    var MosaicThread = new Thread(mosaic.CreateTiles);
+                    MosaicThread.Start();
+                    
+                }
             }
             else
             {
                 //Display error
+                //either the folders are incorrect or there are no files
             }
         }
 
@@ -74,6 +87,13 @@ namespace ThreadedMosaic
 
                 return false;
             }
+        }
+
+        private void InitFields()
+        {
+            SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\30";
+            MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\033_PMmglpV.jpg";
+            OutputImageTextbox.Text = @"C:\Users\Michel\Desktop\Output folder\" + DateTime.Now + ".jpg";
         }
     }
 }

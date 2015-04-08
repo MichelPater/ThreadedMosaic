@@ -43,7 +43,7 @@ namespace ThreadedMosaic
                  {
                      concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetBitmapColorAverage(GetBitmapFromFileName(currentFile)) });
                  }
-                 finally 
+                 finally
                  {
                      Interlocked.Increment(ref this.current);
                      Console.WriteLine(current);
@@ -65,19 +65,18 @@ namespace ThreadedMosaic
         {
             Boolean bLoaded = false;
             Bitmap bitmap = null;
-            /*   while (!bLoaded)
-               {*/
-            try
+            while (!bLoaded)
             {
-                bitmap = new Bitmap(filePath);
-                bLoaded = true;
+                try
+                {
+                    bitmap = new Bitmap(filePath);
+                    bLoaded = true;
+                }
+                catch (OutOfMemoryException)
+                {
+                    GC.WaitForPendingFinalizers();
+                }
             }
-            catch (OutOfMemoryException)
-            {
-                GC.WaitForPendingFinalizers();
-            }
-            // }
-            //bitmap = new Bitmap(filePath);
             return bitmap;
         }
 
@@ -93,25 +92,16 @@ namespace ThreadedMosaic
 
             for (int xCoordinate = 0; xCoordinate < blurredSourceBitmap.Width; xCoordinate++)
             {
-                long tempRedChannel = 0;
-                long tempGreenChannel = 0;
-                long tempBlueChannel = 0;
-                int tempTotalPixels = 0;
 
                 for (int yCoordinate = 0; yCoordinate < blurredSourceBitmap.Height; yCoordinate++)
                 {
                     Color color = blurredSourceBitmap.GetPixel(xCoordinate, yCoordinate);
-                    tempRedChannel = color.R;
-                    tempGreenChannel = color.G;
-                    tempBlueChannel = color.B;
-                    tempTotalPixels++;
+                    redChannel += color.R;
+                    greenChannel += color.G;
+                    blueChannel += color.B;
+                    totalPixels++;
                 }
-                redChannel += tempRedChannel;
-                greenChannel += tempGreenChannel;
-                blueChannel += tempBlueChannel;
-                totalPixels += tempTotalPixels;
             }
-
             redChannel /= totalPixels;
             greenChannel /= totalPixels;
             blueChannel /= totalPixels;

@@ -63,9 +63,9 @@ namespace ThreadedMosaic
                 {
                     //start analysis
                     Mosaic mosaic = new Mosaic(files.ToList());
+                    SetProgressBarMaximum(files.Count());
                     var MosaicThread = new Thread(mosaic.CreateTiles);
                     MosaicThread.Start();
-                    
                 }
             }
             else
@@ -73,6 +73,16 @@ namespace ThreadedMosaic
                 //Display error
                 //either the folders are incorrect or there are no files
             }
+        }
+
+        private void SetProgressBarMaximum(int limit)
+        {
+            ConversionProgress.Maximum = limit;
+        }
+
+        public void SetPogressBarValue(int value)
+        {
+            ConversionProgress.Value = value;
         }
 
         private Boolean CheckValidPath(String pathname)

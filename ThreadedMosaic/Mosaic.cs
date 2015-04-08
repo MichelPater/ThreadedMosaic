@@ -11,6 +11,7 @@ namespace ThreadedMosaic
     public class Mosaic
     {
         private List<String> _filesNames;
+        private long current;
         public Mosaic()
         {
             //Load Images
@@ -24,8 +25,6 @@ namespace ThreadedMosaic
             //Find closest match for every gridelement
 
             //Assemble image from found gridelements
-
-
         }
 
         public Mosaic(List<String> filesNames)
@@ -37,16 +36,26 @@ namespace ThreadedMosaic
         {
             Console.WriteLine("Start of CreateTiles");
             ConcurrentBag<Tile> concurrentBag = new ConcurrentBag<Tile>();
-            /*  Parallel.ForEach(_filesNames, currentFile =>
-              {
-                  concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetBitmapColorAverage(GetBitmapFromFileName(currentFile)) });
-              });*/
 
+            Parallel.ForEach(_filesNames, currentFile =>
+             {
+                 try
+                 {
+                     concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetBitmapColorAverage(GetBitmapFromFileName(currentFile)) });
+                 }
+                 finally 
+                 {
+                     Interlocked.Increment(ref this.current);
+                     Console.WriteLine(current);
+                 }
+             });
+
+            /*
             foreach (var currentFile in _filesNames)
             {
                 Console.WriteLine("A file in _fileNames");
                 concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetBitmapColorAverage(GetBitmapFromFileName(currentFile)) });
-            }
+            }*/
 
             Console.WriteLine("Amount of entries in concurrentbag: " + concurrentBag.Count);
             Console.WriteLine("Amount of entires in List: " + _filesNames.Count);
@@ -56,20 +65,19 @@ namespace ThreadedMosaic
         {
             Boolean bLoaded = false;
             Bitmap bitmap = null;
-            while (!bLoaded)
+            /*   while (!bLoaded)
+               {*/
+            try
             {
-                try
-                {
-                    bitmap = new Bitmap(filePath);
-                    bLoaded = true;
-                }
-                catch (OutOfMemoryException)
-                {
-                    //Thread.Sleep(500);
-                    GC.WaitForPendingFinalizers();
-                }
+                bitmap = new Bitmap(filePath);
+                bLoaded = true;
             }
-            bitmap = new Bitmap(filePath);
+            catch (OutOfMemoryException)
+            {
+                GC.WaitForPendingFinalizers();
+            }
+            // }
+            //bitmap = new Bitmap(filePath);
             return bitmap;
         }
 
@@ -81,7 +89,6 @@ namespace ThreadedMosaic
             long redChannel = 0;
             long greenChannel = 0;
             long blueChannel = 0;
-
             long totalPixels = 0;
 
             for (int xCoordinate = 0; xCoordinate < blurredSourceBitmap.Width; xCoordinate++)
@@ -98,7 +105,6 @@ namespace ThreadedMosaic
                     tempGreenChannel = color.G;
                     tempBlueChannel = color.B;
                     tempTotalPixels++;
-
                 }
                 redChannel += tempRedChannel;
                 greenChannel += tempGreenChannel;

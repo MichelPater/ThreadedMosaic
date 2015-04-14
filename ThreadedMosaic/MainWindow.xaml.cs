@@ -101,7 +101,8 @@ namespace ThreadedMosaic
 
         private void InitFields()
         {
-            SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\30";
+            //SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\3000";
+            SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\imgur_abaz1";
             MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\033_PMmglpV.jpg";
             OutputImageTextbox.Text = @"C:\Users\Michel\Desktop\Output folder\" + DateTime.Now + ".jpg";
         }

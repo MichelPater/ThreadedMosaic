@@ -3,6 +3,8 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Imaging;
+using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -36,29 +38,35 @@ namespace ThreadedMosaic
         {
             Console.WriteLine("Start of CreateTiles");
             ConcurrentBag<Tile> concurrentBag = new ConcurrentBag<Tile>();
-
+            Console.WriteLine(DateTime.Now);
             Parallel.ForEach(_filesNames, currentFile =>
              {
                  try
                  {
-                     concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetBitmapColorAverage(GetBitmapFromFileName(currentFile)) });
+                     Color averageColor = GetAverageColor(GetBitmapFromFileName(currentFile));
+
+                     if (averageColor != new Color())
+                     {
+                         concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = averageColor });
+                     }
                  }
                  finally
                  {
                      Interlocked.Increment(ref this.current);
-                     Console.WriteLine(current);
                  }
              });
 
             /*
             foreach (var currentFile in _filesNames)
             {
-                Console.WriteLine("A file in _fileNames");
-                concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetBitmapColorAverage(GetBitmapFromFileName(currentFile)) });
-            }*/
-
+                Console.WriteLine("A file in _fileNames: " + currentFile);
+                concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetQuickAverageColor(GetBitmapFromFileName(currentFile)) });
+            }
+            */
+            Console.WriteLine(DateTime.Now);
             Console.WriteLine("Amount of entries in concurrentbag: " + concurrentBag.Count);
             Console.WriteLine("Amount of entires in List: " + _filesNames.Count);
+            Console.WriteLine("Skipped Entries : " + (_filesNames.Count - concurrentBag.Count));
         }
 
         public Bitmap GetBitmapFromFileName(String filePath)
@@ -80,34 +88,55 @@ namespace ThreadedMosaic
             return bitmap;
         }
 
-
-        public Color GetBitmapColorAverage(Bitmap sourceBitmap)
+        [HandleProcessCorruptedStateExceptions]
+        private Color GetAverageColor(Bitmap bitmap)
         {
-            //Bitmap blurredSourceBitmap = Blur.GausianBlur(sourceBitmap, 5);
-            Bitmap blurredSourceBitmap = sourceBitmap;
-            long redChannel = 0;
-            long greenChannel = 0;
-            long blueChannel = 0;
-            long totalPixels = 0;
-
-            for (int xCoordinate = 0; xCoordinate < blurredSourceBitmap.Width; xCoordinate++)
+            try
             {
+                int width = bitmap.Width;
+                int height = bitmap.Height;
+                int red = 0;
+                int green = 0;
+                int blue = 0;
+                long[] totals = { 0, 0, 0 };
+                int bppModifier = bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4; // cutting corners, will fail on anything else but 32 and 24 bit images
 
-                for (int yCoordinate = 0; yCoordinate < blurredSourceBitmap.Height; yCoordinate++)
+                BitmapData srcData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
+
+                int stride = srcData.Stride;
+                IntPtr Scan0 = srcData.Scan0;
+
+                unsafe
                 {
-                    Color color = blurredSourceBitmap.GetPixel(xCoordinate, yCoordinate);
-                    redChannel += color.R;
-                    greenChannel += color.G;
-                    blueChannel += color.B;
-                    totalPixels++;
+                    byte* pixel = (byte*)(void*)Scan0;
+
+                    for (int y = 0; y < height; y++)
+                    {
+                        for (int x = 0; x < width; x++)
+                        {
+                            int idx = (y * stride) + x * bppModifier;
+                            red = pixel[idx + 2];
+                            green = pixel[idx + 1];
+                            blue = pixel[idx];
+
+                            totals[2] += red;
+                            totals[1] += green;
+                            totals[0] += blue;
+                        }
+                    }
                 }
+
+                int count = width * height;
+                int avgR = (int)(totals[2] / count);
+                int avgG = (int)(totals[1] / count);
+                int avgB = (int)(totals[0] / count);
+                bitmap.Dispose();
+                return Color.FromArgb(avgR, avgG, avgB);
             }
-            redChannel /= totalPixels;
-            greenChannel /= totalPixels;
-            blueChannel /= totalPixels;
-            sourceBitmap.Dispose();
-            blurredSourceBitmap.Dispose();
-            return Color.FromArgb(255, Convert.ToInt32(redChannel), Convert.ToInt32(greenChannel), Convert.ToInt32(blueChannel));
+            catch (Exception exception)
+            {
+                return new Color();
+            }
         }
     }
 }

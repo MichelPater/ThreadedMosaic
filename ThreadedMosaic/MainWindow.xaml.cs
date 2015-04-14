@@ -59,13 +59,17 @@ namespace ThreadedMosaic
                 //Check if there are files in the SeedFolder
                 var files = Directory.EnumerateFiles(SeedFolderTextbox.Text, "*.*", SearchOption.TopDirectoryOnly)
                     .Where(s => s.EndsWith(".png") || s.EndsWith(".jpg"));
-                if (files.Any())
+                if (files.Any() && !String.IsNullOrEmpty(MasterImageTextBox.Text))
                 {
                     //start analysis
-                    Mosaic mosaic = new Mosaic(files.ToList());
+                    Mosaic mosaic = new Mosaic(files.ToList(), MasterImageTextBox.Text);
                     SetProgressBarMaximum(files.Count());
-                    var MosaicThread = new Thread(mosaic.CreateTiles);
+                   /* var MosaicThread = new Thread(mosaic.LoadImages);
+                    MosaicThread.Start();*/
+
+                    var MosaicThread = new Thread(mosaic.CreateOutput);
                     MosaicThread.Start();
+
                 }
             }
             else

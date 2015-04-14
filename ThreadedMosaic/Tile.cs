@@ -10,6 +10,5 @@ namespace ThreadedMosaic
     public class Tile
     {
         public Color AverageColor { get; set; }
-        public String FilePath { get; set; }
     }
 }

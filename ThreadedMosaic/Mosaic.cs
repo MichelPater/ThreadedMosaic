@@ -7,13 +7,21 @@ using System.Drawing.Imaging;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Media;
+using Color = System.Drawing.Color;
+using PixelFormat = System.Drawing.Imaging.PixelFormat;
 
 namespace ThreadedMosaic
 {
     public class Mosaic
     {
-        private List<String> _filesNames;
+        private List<String> _fileLocations;
         private long current;
+        private readonly int X_PIXEL_COUNT = 40;
+        private readonly int Y_PIXEL_COUNT = 40;
+        private readonly String _outputLocation = @"C:\Users\Michel\Desktop\Output folder\" + DateTime.Now.ToString().Replace(':', '-')  +".jpeg";
+        private readonly Bitmap _masterBitmap;
+        private readonly String _masterFileLocation;
         public Mosaic()
         {
             //Load Images
@@ -29,17 +37,79 @@ namespace ThreadedMosaic
             //Assemble image from found gridelements
         }
 
-        public Mosaic(List<String> filesNames)
+        public Mosaic(List<String> fileLocations, String masterFileLocation)
         {
-            _filesNames = filesNames;
+            _fileLocations = fileLocations;
+            _masterFileLocation = masterFileLocation;
+            _masterBitmap = GetBitmapFromFileName(masterFileLocation);
         }
 
-        public void CreateTiles()
+        private Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
         {
-            Console.WriteLine("Start of CreateTiles");
-            ConcurrentBag<Tile> concurrentBag = new ConcurrentBag<Tile>();
-            Console.WriteLine(DateTime.Now);
-            Parallel.ForEach(_filesNames, currentFile =>
+            int amountOfTilesInWidth = sourceBitmap.Width / X_PIXEL_COUNT;
+            int amountOfTilesInHeight = sourceBitmap.Height / Y_PIXEL_COUNT;
+            Color[,] tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
+
+            for (int x = 0; x < amountOfTilesInWidth; x++)
+            {
+                for (int y = 0; y < amountOfTilesInHeight; y++)
+                {
+                    int xTopCoordinate = x * X_PIXEL_COUNT;
+                    int yTopCoordinate = y * Y_PIXEL_COUNT;
+
+                    int xBottomCoordinate = xTopCoordinate + X_PIXEL_COUNT;
+                    int yBottomCoordinate = yTopCoordinate + Y_PIXEL_COUNT;
+
+                    tileColors[x, y] = GetAverageColor(sourceBitmap, new Rectangle(xTopCoordinate, yTopCoordinate, xBottomCoordinate, yBottomCoordinate));
+                }
+            }
+            return tileColors;
+        }
+
+        public void CreateOutput()
+        {
+            SaveImage(CreateMosaic(GetColorTilesFromBitmap(_masterBitmap)));
+            Console.WriteLine("Done");
+        }
+
+        private Image CreateMosaic(Color[,] tileColors)
+        {
+            Image mosaicImage = Image.FromFile(_masterFileLocation);
+
+            using (Graphics graphics = Graphics.FromImage(mosaicImage))
+            {
+                for (int x = 0; x < tileColors.GetLength(0); x++)
+                {
+                    for (int y = 0; y < tileColors.GetLength(1); y++)
+                    {
+                        SolidBrush shadowBrush = new SolidBrush(tileColors[x, y]);
+
+                        int xTopCoordinate = x * X_PIXEL_COUNT;
+                        int yTopCoordinate = y * Y_PIXEL_COUNT;
+
+                        int xBottomCoordinate = xTopCoordinate + X_PIXEL_COUNT;
+                        int yBottomCoordinate = yTopCoordinate + Y_PIXEL_COUNT;
+                        graphics.FillRectangle(shadowBrush, new Rectangle(xTopCoordinate, yTopCoordinate, xBottomCoordinate, yBottomCoordinate));
+                    }
+                }
+            }
+            return mosaicImage;
+        }
+
+        public void SaveImage(Image imageToSave)
+        {
+            imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
+        }
+        public void SaveImage(Bitmap imageToSave)
+        {
+            imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
+        }
+
+        public void LoadImages()
+        {
+            Console.WriteLine("Start of Loading Images: " + DateTime.Now);
+            ConcurrentBag<LoadedImage> concurrentBag = new ConcurrentBag<LoadedImage>();
+            Parallel.ForEach(_fileLocations, currentFile =>
              {
                  try
                  {
@@ -47,7 +117,7 @@ namespace ThreadedMosaic
 
                      if (averageColor != new Color())
                      {
-                         concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = averageColor });
+                         concurrentBag.Add(new LoadedImage { FilePath = currentFile, AverageColor = averageColor });
                      }
                  }
                  finally
@@ -63,13 +133,13 @@ namespace ThreadedMosaic
                 concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetQuickAverageColor(GetBitmapFromFileName(currentFile)) });
             }
             */
-            Console.WriteLine(DateTime.Now);
+            Console.WriteLine("End of Loading images: " + DateTime.Now);
             Console.WriteLine("Amount of entries in concurrentbag: " + concurrentBag.Count);
-            Console.WriteLine("Amount of entires in List: " + _filesNames.Count);
-            Console.WriteLine("Skipped Entries : " + (_filesNames.Count - concurrentBag.Count));
+            Console.WriteLine("Amount of entires in List: " + _fileLocations.Count);
+            Console.WriteLine("Skipped Entries : " + (_fileLocations.Count - concurrentBag.Count));
         }
 
-        public Bitmap GetBitmapFromFileName(String filePath)
+        private Bitmap GetBitmapFromFileName(String filePath)
         {
             Boolean bLoaded = false;
             Bitmap bitmap = null;
@@ -91,6 +161,13 @@ namespace ThreadedMosaic
         [HandleProcessCorruptedStateExceptions]
         private Color GetAverageColor(Bitmap bitmap)
         {
+            return GetAverageColor(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
+        }
+
+
+        [HandleProcessCorruptedStateExceptions]
+        private Color GetAverageColor(Bitmap bitmap, Rectangle subDivision)
+        {
             try
             {
                 int width = bitmap.Width;
@@ -101,7 +178,7 @@ namespace ThreadedMosaic
                 long[] totals = { 0, 0, 0 };
                 int bppModifier = bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4; // cutting corners, will fail on anything else but 32 and 24 bit images
 
-                BitmapData srcData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly, bitmap.PixelFormat);
+                BitmapData srcData = bitmap.LockBits(subDivision, ImageLockMode.ReadOnly, bitmap.PixelFormat);
 
                 int stride = srcData.Stride;
                 IntPtr Scan0 = srcData.Scan0;

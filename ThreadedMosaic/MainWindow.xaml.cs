@@ -65,7 +65,7 @@ namespace ThreadedMosaic
                     //start analysis
                     Mosaic mosaic = new Mosaic(files.ToList(), MasterImageTextBox.Text);
                     SetProgressBarMaximum(files.Count());
-                   /* var MosaicThread = new Thread(mosaic.LoadImages);
+                    /*var MosaicThread = new Thread(mosaic.LoadImages);
                     MosaicThread.Start();*/
 
                     var MosaicThread = new Thread(mosaic.CreateOutput);
@@ -106,9 +106,10 @@ namespace ThreadedMosaic
 
         private void InitFields()
         {
-            //SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\3000";
-            SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\imgur_abaz1";
-            MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\033_PMmglpV.jpg";
+            SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\3000";
+            //SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\imgur_abaz1";
+            //MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\033_PMmglpV.jpg";
+            MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\2yk0c4-bLLw6IL.jpg";
             OutputImageTextbox.Text = @"C:\Users\Michel\Desktop\Output folder\" + DateTime.Now + ".jpg";
         }
     }

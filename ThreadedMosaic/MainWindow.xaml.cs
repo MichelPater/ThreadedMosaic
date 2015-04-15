@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
+using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace ThreadedMosaic
 {
@@ -34,7 +35,7 @@ namespace ThreadedMosaic
 
         private void OutputImageButton_Click(object sender, RoutedEventArgs e)
         {
-            Microsoft.Win32.SaveFileDialog dlg = new Microsoft.Win32.SaveFileDialog();
+            SaveFileDialog dlg = new SaveFileDialog();
 
             dlg.DefaultExt = ".jpg"; // Default file extension
             dlg.Filter = "Image files (.jpg)|*.jpg"; // Filter files by extension

@@ -1,25 +1,22 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
+using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Media;
-using Color = System.Drawing.Color;
-using PixelFormat = System.Drawing.Imaging.PixelFormat;
 
 namespace ThreadedMosaic
 {
     public class Mosaic
     {
         private List<String> _fileLocations;
-        private long current;
-        private readonly int X_PIXEL_COUNT = 40;
-        private readonly int Y_PIXEL_COUNT = 40;
-        private readonly String _outputLocation = @"C:\Users\Michel\Desktop\Output folder\" + DateTime.Now.ToString().Replace(':', '-')  +".jpeg";
+        private long _current;
+        private const int XPixelCount = 40;
+        private const int YPixelCount = 40;
+        private readonly String _outputLocation = @"C:\Users\Michel\Desktop\Output folder\" + DateTime.Now.ToString(CultureInfo.CurrentCulture).Replace(':', '-')  +".jpeg";
         private readonly Bitmap _masterBitmap;
         private readonly String _masterFileLocation;
         public Mosaic()
@@ -46,19 +43,19 @@ namespace ThreadedMosaic
 
         private Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
         {
-            int amountOfTilesInWidth = sourceBitmap.Width / X_PIXEL_COUNT;
-            int amountOfTilesInHeight = sourceBitmap.Height / Y_PIXEL_COUNT;
+            int amountOfTilesInWidth = sourceBitmap.Width / XPixelCount;
+            int amountOfTilesInHeight = sourceBitmap.Height / YPixelCount;
             Color[,] tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
 
             for (int x = 0; x < amountOfTilesInWidth; x++)
             {
                 for (int y = 0; y < amountOfTilesInHeight; y++)
                 {
-                    int xTopCoordinate = x * X_PIXEL_COUNT;
-                    int yTopCoordinate = y * Y_PIXEL_COUNT;
+                    int xTopCoordinate = x * XPixelCount;
+                    int yTopCoordinate = y * YPixelCount;
 
-                    int xBottomCoordinate = xTopCoordinate + X_PIXEL_COUNT;
-                    int yBottomCoordinate = yTopCoordinate + Y_PIXEL_COUNT;
+                    int xBottomCoordinate = xTopCoordinate + XPixelCount;
+                    int yBottomCoordinate = yTopCoordinate + YPixelCount;
 
                     tileColors[x, y] = GetAverageColor(sourceBitmap, new Rectangle(xTopCoordinate, yTopCoordinate, xBottomCoordinate, yBottomCoordinate));
                 }
@@ -84,11 +81,11 @@ namespace ThreadedMosaic
                     {
                         SolidBrush shadowBrush = new SolidBrush(tileColors[x, y]);
 
-                        int xTopCoordinate = x * X_PIXEL_COUNT;
-                        int yTopCoordinate = y * Y_PIXEL_COUNT;
+                        int xTopCoordinate = x * XPixelCount;
+                        int yTopCoordinate = y * YPixelCount;
 
-                        int xBottomCoordinate = xTopCoordinate + X_PIXEL_COUNT;
-                        int yBottomCoordinate = yTopCoordinate + Y_PIXEL_COUNT;
+                        int xBottomCoordinate = xTopCoordinate + XPixelCount;
+                        int yBottomCoordinate = yTopCoordinate + YPixelCount;
                         graphics.FillRectangle(shadowBrush, new Rectangle(xTopCoordinate, yTopCoordinate, xBottomCoordinate, yBottomCoordinate));
                     }
                 }
@@ -122,7 +119,7 @@ namespace ThreadedMosaic
                  }
                  finally
                  {
-                     Interlocked.Increment(ref this.current);
+                     Interlocked.Increment(ref this._current);
                  }
              });
 
@@ -172,29 +169,26 @@ namespace ThreadedMosaic
             {
                 int width = bitmap.Width;
                 int height = bitmap.Height;
-                int red = 0;
-                int green = 0;
-                int blue = 0;
                 long[] totals = { 0, 0, 0 };
                 int bppModifier = bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4; // cutting corners, will fail on anything else but 32 and 24 bit images
 
                 BitmapData srcData = bitmap.LockBits(subDivision, ImageLockMode.ReadOnly, bitmap.PixelFormat);
 
                 int stride = srcData.Stride;
-                IntPtr Scan0 = srcData.Scan0;
+                IntPtr scan0 = srcData.Scan0;
 
                 unsafe
                 {
-                    byte* pixel = (byte*)(void*)Scan0;
+                    byte* pixel = (byte*)(void*)scan0;
 
                     for (int y = 0; y < height; y++)
                     {
                         for (int x = 0; x < width; x++)
                         {
                             int idx = (y * stride) + x * bppModifier;
-                            red = pixel[idx + 2];
-                            green = pixel[idx + 1];
-                            blue = pixel[idx];
+                            int red = pixel[idx + 2];
+                            int green = pixel[idx + 1];
+                            int blue = pixel[idx];
 
                             totals[2] += red;
                             totals[1] += green;
@@ -210,7 +204,8 @@ namespace ThreadedMosaic
                 bitmap.Dispose();
                 return Color.FromArgb(avgR, avgG, avgB);
             }
-            catch (Exception exception)
+            //Catch any error and return an empty Color
+            catch (Exception)
             {
                 return new Color();
             }

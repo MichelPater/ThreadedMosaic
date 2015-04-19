@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
+using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
@@ -48,17 +49,17 @@ namespace ThreadedMosaic
 
         private Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
         {
-            var amountOfTilesInWidth = sourceBitmap.Width / XPixelCount;
-            var amountOfTilesInHeight = sourceBitmap.Height / YPixelCount;
+            var amountOfTilesInWidth = sourceBitmap.Width/XPixelCount;
+            var amountOfTilesInHeight = sourceBitmap.Height/YPixelCount;
             var tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
 
             for (var x = 0; x < amountOfTilesInWidth; x++)
             {
                 for (var y = 0; y < amountOfTilesInHeight; y++)
                 {
-                    var xTopCoordinate = x * XPixelCount;
-                    var yTopCoordinate = y * YPixelCount;
-                    Bitmap tempBitmap = new Bitmap(sourceBitmap);
+                    var xTopCoordinate = x*XPixelCount;
+                    var yTopCoordinate = y*YPixelCount;
+                    var tempBitmap = new Bitmap(sourceBitmap);
                     tileColors[x, y] = GetAverageColor(tempBitmap,
                         new Rectangle(xTopCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
                     tempBitmap.Dispose();
@@ -85,8 +86,8 @@ namespace ThreadedMosaic
                     {
                         var shadowBrush = new SolidBrush(tileColors[x, y]);
 
-                        var xLeftCoordinate = x * XPixelCount;
-                        var yTopCoordinate = y * YPixelCount;
+                        var xLeftCoordinate = x*XPixelCount;
+                        var yTopCoordinate = y*YPixelCount;
 
                         graphics.FillRectangle(shadowBrush,
                             new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
@@ -115,11 +116,11 @@ namespace ThreadedMosaic
             {
                 try
                 {
-                    var averageColor = GetAverageColor(GetBitmapFromFileName(currentFile));
+                    var averageColor = GetMostPrevelantColor(GetBitmapFromFileName(currentFile));
 
                     if (averageColor != new Color())
                     {
-                        concurrentBag.Add(new LoadedImage { FilePath = currentFile, AverageColor = averageColor });
+                        concurrentBag.Add(new LoadedImage {FilePath = currentFile, AverageColor = averageColor});
                     }
                 }
                 finally
@@ -173,8 +174,8 @@ namespace ThreadedMosaic
             try
             {
                 var width = subDivision.Width;
-                var height = subDivision.hei;
-                long[] totals = { 0, 0, 0 };
+                var height = subDivision.Height;
+                long[] totals = {0, 0, 0};
                 var bppModifier = bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4;
                 // cutting corners, will fail on anything else but 32 and 24 bit images
 
@@ -185,13 +186,13 @@ namespace ThreadedMosaic
 
                 unsafe
                 {
-                    var pixel = (byte*)(void*)scan0;
+                    var pixel = (byte*) (void*) scan0;
 
                     for (var y = 0; y < height; y++)
                     {
                         for (var x = 0; x < width; x++)
                         {
-                            var idx = (y * stride) + x * bppModifier;
+                            var idx = (y*stride) + x*bppModifier;
                             int red = pixel[idx + 2];
                             int green = pixel[idx + 1];
                             int blue = pixel[idx];
@@ -203,17 +204,75 @@ namespace ThreadedMosaic
                     }
                 }
 
-                var count = width * height;
-                var avgR = (int)(totals[2] / count);
-                var avgG = (int)(totals[1] / count);
-                var avgB = (int)(totals[0] / count);
+                var count = width*height;
+                var avgR = (int) (totals[2]/count);
+                var avgG = (int) (totals[1]/count);
+                var avgB = (int) (totals[0]/count);
                 bitmap.Dispose();
                 return Color.FromArgb(avgR, avgG, avgB);
             }
-            //Catch any error and return an empty Color
+                //Catch any error and return an empty Color
             catch (Exception)
             {
                 return new Color();
+            }
+        }
+
+        private Color GetMostPrevelantColor(Bitmap sourceBitmap)
+        {
+            var mostUsedColors =
+                GetPixels(sourceBitmap)
+                    .GroupBy(color => color)
+                    .OrderByDescending(grp => grp.Count())
+                    .Select(grp => grp.Key)
+                    .Take(1);
+            /*
+            foreach (var color in mostUsedColors)
+            {
+                Console.WriteLine("Color {0}", color);
+            }*/
+            return mostUsedColors.ToList()[0];
+        }
+
+        [HandleProcessCorruptedStateExceptions]
+        private IEnumerable<Color> GetPixels(Bitmap bitmap)
+        {
+            try
+            {
+                var colors = new List<Color>();
+
+                var width = bitmap.Width;
+                var height = bitmap.Height;
+                var bppModifier = bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4;
+                var srcData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly,
+                    bitmap.PixelFormat);
+
+                var stride = srcData.Stride;
+                var scan0 = srcData.Scan0;
+
+                unsafe
+                {
+                    var pixel = (byte*) (void*) scan0;
+
+                    for (var y = 0; y < height; y++)
+                    {
+                        for (var x = 0; x < width; x++)
+                        {
+                            var idx = (y*stride) + x*bppModifier;
+                            int red = pixel[idx + 2];
+                            int green = pixel[idx + 1];
+                            int blue = pixel[idx];
+
+                            colors.Add(Color.FromArgb(red, green, blue));
+                        }
+                    }
+                }
+                bitmap.Dispose();
+                return colors;
+            }
+            catch (Exception)
+            {
+                throw;
             }
         }
     }

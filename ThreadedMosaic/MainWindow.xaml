@@ -87,6 +87,27 @@
                                  Margin="22,199,0,0"
                                  VerticalAlignment="Top"
                                  Width="497" />
+                    <RadioButton Content="Color Mosaic"
+                                 HorizontalAlignment="Left"
+                                 Margin="350,231,0,0"
+                                 VerticalAlignment="Top"
+                                 GroupName="mosaic"
+                                 Name="MosaicColorRadioButton"
+                                 IsChecked="True"/>
+                    <RadioButton Content="Hue Adjust Mosaic"
+                                 HorizontalAlignment="Left"
+                                 Margin="350,251,0,0"
+                                 VerticalAlignment="Top"
+                                 GroupName="mosaic"
+                                 Name="MosaicHueRadioButton"
+                                 IsChecked="False" />
+                    <RadioButton Content="Photo Mosaic"
+                                 HorizontalAlignment="Left"
+                                 Margin="350,271,0,0"
+                                 VerticalAlignment="Top"
+                                 GroupName="mosaic"
+                                 Name="MosaicPhotoRadioButton"
+                                 IsChecked="False"/>
                 </Grid>
             </TabItem>
             <TabItem Header="TabItem">

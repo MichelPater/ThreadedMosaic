@@ -49,29 +49,10 @@ namespace ThreadedMosaic
 
         private Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
         {
-            var amountOfTilesInWidth = sourceBitmap.Width / XPixelCount;
-            var amountOfTilesInHeight = sourceBitmap.Height / YPixelCount;
-
             var amountOfWidthLeftOver = sourceBitmap.Width % XPixelCount;
             var amountOfHeightLeftOver = sourceBitmap.Height % YPixelCount;
-            var tileColors = new Color[1, 1];
 
-            if (amountOfHeightLeftOver > 0 && amountOfWidthLeftOver > 0)
-            {
-                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight + 1];
-            }
-            else if (amountOfWidthLeftOver > 0)
-            {
-                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight];
-            }
-            else if (amountOfHeightLeftOver > 0)
-            {
-                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight + 1];
-            }
-            else
-            {
-                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
-            }
+            var tileColors = InitializeColorTiles(sourceBitmap.Width, sourceBitmap.Height);
 
             for (var x = 0; x < tileColors.GetLength(0); x++)
             {
@@ -116,6 +97,42 @@ namespace ThreadedMosaic
                     tempBitmap.Dispose();
                 }
             }
+            return tileColors;
+        }
+
+        /// <summary>
+        /// Initalizes the ColorArray with the correct width and height depending on the imagewidth and heigh
+        /// </summary>
+        /// <param name="imageWidth"></param>
+        /// <param name="imageHeight"></param>
+        /// <returns></returns>
+        private Color[,] InitializeColorTiles(int imageWidth, int imageHeight)
+        {
+            Color[,] tileColors;
+
+            var amountOfTilesInWidth = imageWidth / XPixelCount;
+            var amountOfTilesInHeight = imageHeight / YPixelCount;
+
+            var amountOfWidthLeftOver = imageWidth % XPixelCount;
+            var amountOfHeightLeftOver = imageWidth % YPixelCount;
+
+            if (amountOfHeightLeftOver > 0 && amountOfWidthLeftOver > 0)
+            {
+                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight + 1];
+            }
+            else if (amountOfWidthLeftOver > 0)
+            {
+                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight];
+            }
+            else if (amountOfHeightLeftOver > 0)
+            {
+                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight + 1];
+            }
+            else
+            {
+                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
+            }
+
             return tileColors;
         }
 

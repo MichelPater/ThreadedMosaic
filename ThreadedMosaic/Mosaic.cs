@@ -13,17 +13,17 @@ namespace ThreadedMosaic
 {
     public class Mosaic
     {
-        private const int XPixelCount = 40;
-        private const int YPixelCount = 40;
-        private readonly List<String> _fileLocations;
-        private readonly Bitmap _masterBitmap;
-        private readonly String _masterFileLocation;
+        public const int XPixelCount = 40;
+        public const int YPixelCount = 40;
+        protected readonly List<String> _fileLocations;
+        protected readonly Bitmap _masterBitmap;
+        protected readonly String _masterFileLocation;
 
         private readonly String _outputLocation = @"C:\Users\Michel\Desktop\Output folder\" +
                                                   DateTime.Now.ToString(CultureInfo.CurrentCulture).Replace(':', '-') +
                                                   ".jpeg";
 
-        private long _current;
+        protected long _current;
 
         public Mosaic()
         {
@@ -39,6 +39,11 @@ namespace ThreadedMosaic
 
             //Assemble image from found gridelements
         }
+        public Mosaic(String masterFileLocation)
+        {
+            _masterFileLocation = masterFileLocation;
+            _masterBitmap = GetBitmapFromFileName(masterFileLocation);
+        }
 
         public Mosaic(List<String> fileLocations, String masterFileLocation)
         {
@@ -47,153 +52,16 @@ namespace ThreadedMosaic
             _masterBitmap = GetBitmapFromFileName(masterFileLocation);
         }
 
-        private Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
+        protected void SaveImage(Image imageToSave)
         {
-            var tileColors = InitializeColorTiles(sourceBitmap.Width, sourceBitmap.Height);
-
-            for (var x = 0; x < tileColors.GetLength(0); x++)
-            {
-                for (var y = 0; y < tileColors.GetLength(1); y++)
-                {
-                    var tempBitmap = new Bitmap(sourceBitmap);
-
-                    tileColors[x, y] = GetAverageColor(tempBitmap,
-                        CreateSizeAppropriateRectangle(x, y, tileColors, sourceBitmap.Width, sourceBitmap.Height));
-
-                    tempBitmap.Dispose();
-                }
-            }
-            return tileColors;
+            imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
         }
-
-        /// <summary>
-        /// Initalizes the ColorArray with the correct width and height depending on the imagewidth and heigh
-        /// </summary>
-        /// <param name="imageWidth">The image width</param>
-        /// <param name="imageHeight">The image Height</param>
-        /// <returns></returns>
-        private Color[,] InitializeColorTiles(int imageWidth, int imageHeight)
-        {
-            Color[,] tileColors;
-
-            var amountOfTilesInWidth = imageWidth / XPixelCount;
-            var amountOfTilesInHeight = imageHeight / YPixelCount;
-
-            var amountOfWidthLeftOver = imageWidth % XPixelCount;
-            var amountOfHeightLeftOver = imageWidth % YPixelCount;
-
-            //Check if the height and widht fit perfectly in the grid
-            //if not expand the grid in the direction that has left over pixels
-            if (amountOfHeightLeftOver > 0 && amountOfWidthLeftOver > 0)
-            {
-                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight + 1];
-            }
-            else if (amountOfWidthLeftOver > 0)
-            {
-                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight];
-            }
-            else if (amountOfHeightLeftOver > 0)
-            {
-                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight + 1];
-            }
-            else
-            {
-                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
-            }
-
-            return tileColors;
-        }
-
-        /// <summary>
-        /// Create the correct rectangle for the current tile
-        /// </summary>
-        /// <param name="currentXCoordinate">The current X coordinate</param>
-        /// <param name="currentYCoordinate">The current Y coordinate</param>
-        /// <param name="tileColors">The array with the colortiles</param>
-        /// <param name="sourceBitmapWidth">The source image width</param>
-        /// <param name="sourceBitmapHeight">The source image height</param>
-        /// <returns></returns>
-        private Rectangle CreateSizeAppropriateRectangle(int currentXCoordinate, int currentYCoordinate, Color[,] tileColors, int sourceBitmapWidth, int sourceBitmapHeight)
-        {
-            var xTopCoordinate = currentXCoordinate * XPixelCount;
-            var yTopCoordinate = currentYCoordinate * YPixelCount;
-
-            var amountOfWidthLeftOver = sourceBitmapWidth % XPixelCount;
-            var amountOfHeightLeftOver = sourceBitmapHeight % YPixelCount;
-
-            //Check if there are any left over pixels if not make a normal rectangle
-            if (currentXCoordinate < tileColors.GetLength(0) - 1 && currentYCoordinate < tileColors.GetLength(1) - 1)
-            {
-
-                return new Rectangle(xTopCoordinate, yTopCoordinate, XPixelCount, YPixelCount);
-            }
-            //if there are left over pixels that do not fit into a regular grid check on which side the excess exists and compensate
-            else
-            {
-                int tempXPixelCount, tempYPixelCount;
-
-                if (amountOfWidthLeftOver > 0)
-                {
-                    tempXPixelCount = amountOfHeightLeftOver;
-                }
-                else
-                {
-                    tempXPixelCount = XPixelCount;
-                }
-
-                if (amountOfHeightLeftOver > 0)
-                {
-                    tempYPixelCount = amountOfHeightLeftOver;
-                }
-                else
-                {
-                    tempYPixelCount = YPixelCount;
-                }
-                return new Rectangle(xTopCoordinate, yTopCoordinate, tempXPixelCount, tempYPixelCount);
-            }
-        }
-
-        public void CreateColorOutput()
-        {
-            SaveImage(CreateMosaic(GetColorTilesFromBitmap(_masterBitmap)));
-            Console.WriteLine("Done");
-        }
-
-        private Image CreateMosaic(Color[,] tileColors)
-        {
-            var mosaicImage = Image.FromFile(_masterFileLocation);
-
-            using (var graphics = Graphics.FromImage(mosaicImage))
-            {
-                for (var x = 0; x < tileColors.GetLength(0); x++)
-                {
-                    for (var y = 0; y < tileColors.GetLength(1); y++)
-                    {
-                        var shadowBrush = new SolidBrush(tileColors[x, y]);
-
-                        var xLeftCoordinate = x * XPixelCount;
-                        var yTopCoordinate = y * YPixelCount;
-
-                        graphics.FillRectangle(shadowBrush,
-                            new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
-                        // Console.WriteLine("x|y : " + x + "|" + y);
-                    }
-                }
-            }
-            return mosaicImage;
-        }
-
-        public void SaveImage(Image imageToSave)
+        protected void SaveImage(Bitmap imageToSave)
         {
             imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
         }
 
-        public void SaveImage(Bitmap imageToSave)
-        {
-            imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
-        }
-
-        public void LoadImages()
+        private void LoadImages()
         {
             Console.WriteLine("Start of Loading Images: " + DateTime.Now);
             var concurrentBag = new ConcurrentBag<LoadedImage>();
@@ -248,13 +116,13 @@ namespace ThreadedMosaic
         }
 
         [HandleProcessCorruptedStateExceptions]
-        private Color GetAverageColor(Bitmap bitmap)
+        protected Color GetAverageColor(Bitmap bitmap)
         {
             return GetAverageColor(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
         }
 
         [HandleProcessCorruptedStateExceptions]
-        private Color GetAverageColor(Bitmap bitmap, Rectangle subDivision)
+        protected Color GetAverageColor(Bitmap bitmap, Rectangle subDivision)
         {
             try
             {
@@ -358,6 +226,92 @@ namespace ThreadedMosaic
             catch (Exception)
             {
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Initalizes the ColorArray with the correct width and height depending on the imagewidth and heigh
+        /// </summary>
+        /// <param name="imageWidth">The image width</param>
+        /// <param name="imageHeight">The image Height</param>
+        /// <returns></returns>
+        protected Color[,] InitializeColorTiles(int imageWidth, int imageHeight)
+        {
+            Color[,] tileColors;
+
+            var amountOfTilesInWidth = imageWidth / XPixelCount;
+            var amountOfTilesInHeight = imageHeight / YPixelCount;
+
+            var amountOfWidthLeftOver = imageWidth % XPixelCount;
+            var amountOfHeightLeftOver = imageWidth % YPixelCount;
+
+            //Check if the height and widht fit perfectly in the grid
+            //if not expand the grid in the direction that has left over pixels
+            if (amountOfHeightLeftOver > 0 && amountOfWidthLeftOver > 0)
+            {
+                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight + 1];
+            }
+            else if (amountOfWidthLeftOver > 0)
+            {
+                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight];
+            }
+            else if (amountOfHeightLeftOver > 0)
+            {
+                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight + 1];
+            }
+            else
+            {
+                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
+            }
+
+            return tileColors;
+        }
+
+        /// <summary>
+        /// Create the correct rectangle for the current tile
+        /// </summary>
+        /// <param name="currentXCoordinate">The current X coordinate</param>
+        /// <param name="currentYCoordinate">The current Y coordinate</param>
+        /// <param name="tileColors">The array with the colortiles</param>
+        /// <param name="sourceBitmapWidth">The source image width</param>
+        /// <param name="sourceBitmapHeight">The source image height</param>
+        /// <returns></returns>
+        protected Rectangle CreateSizeAppropriateRectangle(int currentXCoordinate, int currentYCoordinate, Color[,] tileColors, int sourceBitmapWidth, int sourceBitmapHeight)
+        {
+            var xTopCoordinate = currentXCoordinate * XPixelCount;
+            var yTopCoordinate = currentYCoordinate * YPixelCount;
+
+            var amountOfWidthLeftOver = sourceBitmapWidth % XPixelCount;
+            var amountOfHeightLeftOver = sourceBitmapHeight % YPixelCount;
+
+            //Check if there are any left over pixels if not make a normal rectangle
+            if (currentXCoordinate < tileColors.GetLength(0) - 1 && currentYCoordinate < tileColors.GetLength(1) - 1)
+            {
+
+                return new Rectangle(xTopCoordinate, yTopCoordinate, XPixelCount, YPixelCount);
+            }
+            //if there are left over pixels that do not fit into a regular grid check on which side the excess exists and compensate
+            else
+            {
+                int tempXPixelCount, tempYPixelCount;
+
+                if (amountOfWidthLeftOver > 0)
+                {
+                    tempXPixelCount = amountOfHeightLeftOver;
+                }
+                else
+                {
+                    tempXPixelCount = XPixelCount;
+                }
+                if (amountOfHeightLeftOver > 0)
+                {
+                    tempYPixelCount = amountOfHeightLeftOver;
+                }
+                else
+                {
+                    tempYPixelCount = YPixelCount;
+                }
+                return new Rectangle(xTopCoordinate, yTopCoordinate, tempXPixelCount, tempYPixelCount);
             }
         }
     }

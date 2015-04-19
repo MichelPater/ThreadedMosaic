@@ -58,6 +58,8 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Blur.cs" />
+    <Compile Include="ColorMosaic.cs" />
+    <Compile Include="HueMosaic.cs" />
     <Compile Include="LoadedImage.cs" />
     <Compile Include="Tile.cs" />
     <Page Include="MainWindow.xaml">

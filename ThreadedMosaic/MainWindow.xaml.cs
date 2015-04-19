@@ -63,29 +63,30 @@ namespace ThreadedMosaic
                 if (files.Any() && !String.IsNullOrEmpty(MasterImageTextBox.Text))
                 {
                     //start analysis
-                    Mosaic mosaic = new Mosaic(files.ToList(), MasterImageTextBox.Text);
+                    
                     SetProgressBarMaximum(files.Count());
 
 
                     //Check which option is selected
                     if ((bool)MosaicColorRadioButton.IsChecked)
                     {
-
-                        var MosaicThread = new Thread(mosaic.CreateColorOutput);
-                        MosaicThread.Start();
+                        ColorMosaic colorMosaic = new ColorMosaic(MasterImageTextBox.Text);
+                        var ColorMosaicThread = new Thread(colorMosaic.CreateColorMosaic);
+                        ColorMosaicThread.Start();
                     }
                     else if ((bool)MosaicHueRadioButton.IsChecked)
                     {
+                        HueMosaic hueMosaic = new HueMosaic(files.ToList(), MasterImageTextBox.Text);
+                        var HueMosaicThread = new Thread(hueMosaic.CreateColorMosaic);
+                        HueMosaicThread.Start();
 
                     }
                     else if ((bool)MosaicPhotoRadioButton.IsChecked)
                     {
+                      /*  Mosaic mosaic = new Mosaic(files.ToList(), MasterImageTextBox.Text);
                         var MosaicThread = new Thread(mosaic.LoadImages);
-                        MosaicThread.Start();
+                        MosaicThread.Start();*/
                     }
-
-
-
                 }
             }
             else
@@ -123,7 +124,7 @@ namespace ThreadedMosaic
         {
             SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\3000";
             //SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\imgur_abaz1";
-            MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\033_PMmglpV.jpg";
+            MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\2yk0c4-bLLw6IL.jpg";
 
             OutputImageTextbox.Text = @"C:\Users\Michel\Desktop\Output folder\" + DateTime.Now + ".jpg";
         }

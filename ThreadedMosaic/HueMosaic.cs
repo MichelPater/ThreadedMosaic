@@ -25,8 +25,7 @@ namespace ThreadedMosaic
         private Image CreateMosaic(Color[,] tileColors)
         {
             var mosaicImage = Image.FromFile(_masterFileLocation);
-
-
+            
             using (var graphics = Graphics.FromImage(mosaicImage))
             {
                 for (var x = 0; x < tileColors.GetLength(0); x++)
@@ -52,7 +51,10 @@ namespace ThreadedMosaic
             return mosaicImage;
         }
 
-
+        /// <summary>
+        /// Get a random image from the loaded images
+        /// </summary>
+        /// <returns></returns>
         private Image GetRandomImage()
         {
             Random random = new Random(DateTime.Now.Millisecond);
@@ -63,9 +65,14 @@ namespace ThreadedMosaic
             return randomImage;
         }
 
-        public Image ResizeImage(Image imgToResize, Size size)
+        private Image ResizeImage(Image imgToResize, Size size)
         {
             return (Image)(new Bitmap(imgToResize, size));
+        }
+
+        private Size GetAppropriateSize()
+        {
+            return new Size();
         }
 
         private void LoadImages()

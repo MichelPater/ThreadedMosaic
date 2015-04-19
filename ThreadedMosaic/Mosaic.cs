@@ -243,7 +243,7 @@ namespace ThreadedMosaic
             var amountOfTilesInHeight = imageHeight / YPixelCount;
 
             var amountOfWidthLeftOver = imageWidth % XPixelCount;
-            var amountOfHeightLeftOver = imageWidth % YPixelCount;
+            var amountOfHeightLeftOver = imageHeight % YPixelCount;
 
             //Check if the height and widht fit perfectly in the grid
             //if not expand the grid in the direction that has left over pixels

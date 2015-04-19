@@ -49,16 +49,36 @@ namespace ThreadedMosaic
 
         private Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
         {
-            var amountOfTilesInWidth = sourceBitmap.Width/XPixelCount;
-            var amountOfTilesInHeight = sourceBitmap.Height/YPixelCount;
-            var tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
+            var amountOfTilesInWidth = sourceBitmap.Width / XPixelCount;
+            var amountOfTilesInHeight = sourceBitmap.Height / YPixelCount;
+
+            var amountOfWidthLeftOver = sourceBitmap.Width % XPixelCount;
+            var amountOfHeightLeftOver = sourceBitmap.Height % YPixelCount;
+            var tileColors = new Color[1,1];
+
+            if (amountOfHeightLeftOver > 0 && amountOfWidthLeftOver > 0)
+            {
+                 tileColors = new Color[amountOfTilesInWidth +1, amountOfTilesInHeight +1];
+            }
+            else if (amountOfWidthLeftOver > 0)
+            {
+                 tileColors = new Color[amountOfTilesInWidth +1, amountOfTilesInHeight];
+            }
+            else if (amountOfHeightLeftOver > 0)
+            {
+                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight + 1];
+            }
+            else
+            {
+                 tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
+            }
 
             for (var x = 0; x < amountOfTilesInWidth; x++)
             {
                 for (var y = 0; y < amountOfTilesInHeight; y++)
                 {
-                    var xTopCoordinate = x*XPixelCount;
-                    var yTopCoordinate = y*YPixelCount;
+                    var xTopCoordinate = x * XPixelCount;
+                    var yTopCoordinate = y * YPixelCount;
                     var tempBitmap = new Bitmap(sourceBitmap);
                     tileColors[x, y] = GetAverageColor(tempBitmap,
                         new Rectangle(xTopCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
@@ -68,7 +88,7 @@ namespace ThreadedMosaic
             return tileColors;
         }
 
-        public void CreateOutput()
+        public void CreateColorOutput()
         {
             SaveImage(CreateMosaic(GetColorTilesFromBitmap(_masterBitmap)));
             Console.WriteLine("Done");
@@ -86,8 +106,8 @@ namespace ThreadedMosaic
                     {
                         var shadowBrush = new SolidBrush(tileColors[x, y]);
 
-                        var xLeftCoordinate = x*XPixelCount;
-                        var yTopCoordinate = y*YPixelCount;
+                        var xLeftCoordinate = x * XPixelCount;
+                        var yTopCoordinate = y * YPixelCount;
 
                         graphics.FillRectangle(shadowBrush,
                             new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
@@ -120,7 +140,7 @@ namespace ThreadedMosaic
 
                     if (averageColor != new Color())
                     {
-                        concurrentBag.Add(new LoadedImage {FilePath = currentFile, AverageColor = averageColor});
+                        concurrentBag.Add(new LoadedImage { FilePath = currentFile, AverageColor = averageColor });
                     }
                 }
                 finally
@@ -175,7 +195,7 @@ namespace ThreadedMosaic
             {
                 var width = subDivision.Width;
                 var height = subDivision.Height;
-                long[] totals = {0, 0, 0};
+                long[] totals = { 0, 0, 0 };
                 var bppModifier = bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4;
                 // cutting corners, will fail on anything else but 32 and 24 bit images
 
@@ -186,13 +206,13 @@ namespace ThreadedMosaic
 
                 unsafe
                 {
-                    var pixel = (byte*) (void*) scan0;
+                    var pixel = (byte*)(void*)scan0;
 
                     for (var y = 0; y < height; y++)
                     {
                         for (var x = 0; x < width; x++)
                         {
-                            var idx = (y*stride) + x*bppModifier;
+                            var idx = (y * stride) + x * bppModifier;
                             int red = pixel[idx + 2];
                             int green = pixel[idx + 1];
                             int blue = pixel[idx];
@@ -204,14 +224,14 @@ namespace ThreadedMosaic
                     }
                 }
 
-                var count = width*height;
-                var avgR = (int) (totals[2]/count);
-                var avgG = (int) (totals[1]/count);
-                var avgB = (int) (totals[0]/count);
+                var count = width * height;
+                var avgR = (int)(totals[2] / count);
+                var avgG = (int)(totals[1] / count);
+                var avgB = (int)(totals[0] / count);
                 bitmap.Dispose();
                 return Color.FromArgb(avgR, avgG, avgB);
             }
-                //Catch any error and return an empty Color
+            //Catch any error and return an empty Color
             catch (Exception)
             {
                 return new Color();
@@ -252,13 +272,13 @@ namespace ThreadedMosaic
 
                 unsafe
                 {
-                    var pixel = (byte*) (void*) scan0;
+                    var pixel = (byte*)(void*)scan0;
 
                     for (var y = 0; y < height; y++)
                     {
                         for (var x = 0; x < width; x++)
                         {
-                            var idx = (y*stride) + x*bppModifier;
+                            var idx = (y * stride) + x * bppModifier;
                             int red = pixel[idx + 2];
                             int green = pixel[idx + 1];
                             int blue = pixel[idx];

@@ -71,7 +71,7 @@ namespace ThreadedMosaic
                     if ((bool)MosaicColorRadioButton.IsChecked)
                     {
 
-                        var MosaicThread = new Thread(mosaic.CreateOutput);
+                        var MosaicThread = new Thread(mosaic.CreateColorOutput);
                         MosaicThread.Start();
                     }
                     else if ((bool)MosaicHueRadioButton.IsChecked)

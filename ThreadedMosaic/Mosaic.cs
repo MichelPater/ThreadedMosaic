@@ -49,50 +49,16 @@ namespace ThreadedMosaic
 
         private Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
         {
-            var amountOfWidthLeftOver = sourceBitmap.Width % XPixelCount;
-            var amountOfHeightLeftOver = sourceBitmap.Height % YPixelCount;
-
             var tileColors = InitializeColorTiles(sourceBitmap.Width, sourceBitmap.Height);
 
             for (var x = 0; x < tileColors.GetLength(0); x++)
             {
                 for (var y = 0; y < tileColors.GetLength(1); y++)
                 {
-
-                    var xTopCoordinate = x * XPixelCount;
-                    var yTopCoordinate = y * YPixelCount;
                     var tempBitmap = new Bitmap(sourceBitmap);
 
-                    if (x < tileColors.GetLength(0) - 1 && y < tileColors.GetLength(1) - 1)
-                    {
-                        tileColors[x, y] = GetAverageColor(tempBitmap,
-                            new Rectangle(xTopCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
-                    }
-                    else
-                    {
-                        int tempXPixelCount, tempYPixelCount;
-
-                        if (amountOfWidthLeftOver > 0)
-                        {
-                            tempXPixelCount = amountOfHeightLeftOver;
-                        }
-                        else
-                        {
-                            tempXPixelCount = XPixelCount;
-                        }
-
-                        if (amountOfHeightLeftOver > 0)
-                        {
-                            tempYPixelCount = amountOfHeightLeftOver;
-                        }
-                        else
-                        {
-                            tempYPixelCount = YPixelCount;
-                        }
-
-                        tileColors[x, y] = GetAverageColor(tempBitmap,
-                             new Rectangle(xTopCoordinate, yTopCoordinate, tempXPixelCount, tempYPixelCount));
-                    }
+                    tileColors[x, y] = GetAverageColor(tempBitmap,
+                        CreateSizeAppropriateRectangle(x, y, tileColors, sourceBitmap.Width, sourceBitmap.Height));
 
                     tempBitmap.Dispose();
                 }
@@ -103,8 +69,8 @@ namespace ThreadedMosaic
         /// <summary>
         /// Initalizes the ColorArray with the correct width and height depending on the imagewidth and heigh
         /// </summary>
-        /// <param name="imageWidth"></param>
-        /// <param name="imageHeight"></param>
+        /// <param name="imageWidth">The image width</param>
+        /// <param name="imageHeight">The image Height</param>
         /// <returns></returns>
         private Color[,] InitializeColorTiles(int imageWidth, int imageHeight)
         {
@@ -116,6 +82,8 @@ namespace ThreadedMosaic
             var amountOfWidthLeftOver = imageWidth % XPixelCount;
             var amountOfHeightLeftOver = imageWidth % YPixelCount;
 
+            //Check if the height and widht fit perfectly in the grid
+            //if not expand the grid in the direction that has left over pixels
             if (amountOfHeightLeftOver > 0 && amountOfWidthLeftOver > 0)
             {
                 tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight + 1];
@@ -134,6 +102,55 @@ namespace ThreadedMosaic
             }
 
             return tileColors;
+        }
+
+        /// <summary>
+        /// Create the correct rectangle for the current tile
+        /// </summary>
+        /// <param name="currentXCoordinate">The current X coordinate</param>
+        /// <param name="currentYCoordinate">The current Y coordinate</param>
+        /// <param name="tileColors">The array with the colortiles</param>
+        /// <param name="sourceBitmapWidth">The source image width</param>
+        /// <param name="sourceBitmapHeight">The source image height</param>
+        /// <returns></returns>
+        private Rectangle CreateSizeAppropriateRectangle(int currentXCoordinate, int currentYCoordinate, Color[,] tileColors, int sourceBitmapWidth, int sourceBitmapHeight)
+        {
+            var xTopCoordinate = currentXCoordinate * XPixelCount;
+            var yTopCoordinate = currentYCoordinate * YPixelCount;
+
+            var amountOfWidthLeftOver = sourceBitmapWidth % XPixelCount;
+            var amountOfHeightLeftOver = sourceBitmapHeight % YPixelCount;
+
+            //Check if there are any left over pixels if not make a normal rectangle
+            if (currentXCoordinate < tileColors.GetLength(0) - 1 && currentYCoordinate < tileColors.GetLength(1) - 1)
+            {
+
+                return new Rectangle(xTopCoordinate, yTopCoordinate, XPixelCount, YPixelCount);
+            }
+            //if there are left over pixels that do not fit into a regular grid check on which side the excess exists and compensate
+            else
+            {
+                int tempXPixelCount, tempYPixelCount;
+
+                if (amountOfWidthLeftOver > 0)
+                {
+                    tempXPixelCount = amountOfHeightLeftOver;
+                }
+                else
+                {
+                    tempXPixelCount = XPixelCount;
+                }
+
+                if (amountOfHeightLeftOver > 0)
+                {
+                    tempYPixelCount = amountOfHeightLeftOver;
+                }
+                else
+                {
+                    tempYPixelCount = YPixelCount;
+                }
+                return new Rectangle(xTopCoordinate, yTopCoordinate, tempXPixelCount, tempYPixelCount);
+            }
         }
 
         public void CreateColorOutput()

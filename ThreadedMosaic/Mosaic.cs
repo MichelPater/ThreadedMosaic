@@ -54,15 +54,15 @@ namespace ThreadedMosaic
 
             var amountOfWidthLeftOver = sourceBitmap.Width % XPixelCount;
             var amountOfHeightLeftOver = sourceBitmap.Height % YPixelCount;
-            var tileColors = new Color[1,1];
+            var tileColors = new Color[1, 1];
 
             if (amountOfHeightLeftOver > 0 && amountOfWidthLeftOver > 0)
             {
-                 tileColors = new Color[amountOfTilesInWidth +1, amountOfTilesInHeight +1];
+                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight + 1];
             }
             else if (amountOfWidthLeftOver > 0)
             {
-                 tileColors = new Color[amountOfTilesInWidth +1, amountOfTilesInHeight];
+                tileColors = new Color[amountOfTilesInWidth + 1, amountOfTilesInHeight];
             }
             else if (amountOfHeightLeftOver > 0)
             {
@@ -70,18 +70,49 @@ namespace ThreadedMosaic
             }
             else
             {
-                 tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
+                tileColors = new Color[amountOfTilesInWidth, amountOfTilesInHeight];
             }
 
-            for (var x = 0; x < amountOfTilesInWidth; x++)
+            for (var x = 0; x < tileColors.GetLength(0); x++)
             {
-                for (var y = 0; y < amountOfTilesInHeight; y++)
+                for (var y = 0; y < tileColors.GetLength(1); y++)
                 {
+
                     var xTopCoordinate = x * XPixelCount;
                     var yTopCoordinate = y * YPixelCount;
                     var tempBitmap = new Bitmap(sourceBitmap);
-                    tileColors[x, y] = GetAverageColor(tempBitmap,
-                        new Rectangle(xTopCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
+
+                    if (x < tileColors.GetLength(0) - 1 && y < tileColors.GetLength(1) - 1)
+                    {
+                        tileColors[x, y] = GetAverageColor(tempBitmap,
+                            new Rectangle(xTopCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
+                    }
+                    else
+                    {
+                        int tempXPixelCount, tempYPixelCount;
+
+                        if (amountOfWidthLeftOver > 0)
+                        {
+                            tempXPixelCount = amountOfHeightLeftOver;
+                        }
+                        else
+                        {
+                            tempXPixelCount = XPixelCount;
+                        }
+
+                        if (amountOfHeightLeftOver > 0)
+                        {
+                            tempYPixelCount = amountOfHeightLeftOver;
+                        }
+                        else
+                        {
+                            tempYPixelCount = YPixelCount;
+                        }
+
+                        tileColors[x, y] = GetAverageColor(tempBitmap,
+                             new Rectangle(xTopCoordinate, yTopCoordinate, tempXPixelCount, tempYPixelCount));
+                    }
+
                     tempBitmap.Dispose();
                 }
             }

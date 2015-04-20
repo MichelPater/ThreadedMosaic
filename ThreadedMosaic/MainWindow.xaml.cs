@@ -62,30 +62,27 @@ namespace ThreadedMosaic
                     .Where(s => s.EndsWith(".png") || s.EndsWith(".jpg"));
                 if (files.Any() && !String.IsNullOrEmpty(MasterImageTextBox.Text))
                 {
-                    //start analysis
-                    
-                    SetProgressBarMaximum(files.Count());
-
-
                     //Check which option is selected
                     if ((bool)MosaicColorRadioButton.IsChecked)
                     {
                         ColorMosaic colorMosaic = new ColorMosaic(MasterImageTextBox.Text);
+                        colorMosaic.SetProgressBar(ProgressBar, ProgressText);
                         var ColorMosaicThread = new Thread(colorMosaic.CreateColorMosaic);
                         ColorMosaicThread.Start();
                     }
                     else if ((bool)MosaicHueRadioButton.IsChecked)
                     {
                         HueMosaic hueMosaic = new HueMosaic(files.ToList(), MasterImageTextBox.Text);
+                        hueMosaic.SetProgressBar(ProgressBar, ProgressText);
                         var HueMosaicThread = new Thread(hueMosaic.CreateColorMosaic);
                         HueMosaicThread.Start();
 
                     }
                     else if ((bool)MosaicPhotoRadioButton.IsChecked)
                     {
-                      /*  Mosaic mosaic = new Mosaic(files.ToList(), MasterImageTextBox.Text);
-                        var MosaicThread = new Thread(mosaic.LoadImages);
-                        MosaicThread.Start();*/
+                        /*  Mosaic mosaic = new Mosaic(files.ToList(), MasterImageTextBox.Text);
+                          var MosaicThread = new Thread(mosaic.LoadImages);
+                          MosaicThread.Start();*/
                     }
                 }
             }
@@ -94,16 +91,6 @@ namespace ThreadedMosaic
                 //Display error
                 //either the folders are incorrect or there are no files
             }
-        }
-
-        private void SetProgressBarMaximum(int limit)
-        {
-            ConversionProgress.Maximum = limit;
-        }
-
-        public void SetPogressBarValue(int value)
-        {
-            ConversionProgress.Value = value;
         }
 
         private Boolean CheckValidPath(String pathname)

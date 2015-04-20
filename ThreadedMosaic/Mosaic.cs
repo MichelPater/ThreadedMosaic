@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.Globalization;
@@ -8,6 +9,9 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Controls;
+using System.Windows.Threading;
+using Image = System.Drawing.Image;
 
 namespace ThreadedMosaic
 {
@@ -18,6 +22,8 @@ namespace ThreadedMosaic
         protected readonly List<String> _fileLocations;
         protected readonly Bitmap _masterBitmap;
         protected readonly String _masterFileLocation;
+        protected ProgressBar _progressBar;
+        protected Label _progressLabel;
 
         private readonly String _outputLocation = @"C:\Users\Michel\Desktop\Output folder\" +
                                                   DateTime.Now.ToString(CultureInfo.CurrentCulture).Replace(':', '-') +
@@ -39,6 +45,7 @@ namespace ThreadedMosaic
 
             //Assemble image from found gridelements
         }
+    
         public Mosaic(String masterFileLocation)
         {
             _masterFileLocation = masterFileLocation;
@@ -51,14 +58,27 @@ namespace ThreadedMosaic
             _masterFileLocation = masterFileLocation;
             _masterBitmap = GetBitmapFromFileName(masterFileLocation);
         }
+        
+        public void SetProgressBar(ProgressBar progressBar, Label progressBarLabel)
+        {
+            _progressBar = progressBar;
+            _progressLabel = progressBarLabel;
+        }
 
         protected void SaveImage(Image imageToSave)
         {
+            SetProgressLabelText("Saving image");
             imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
+            OpenImageFile(_outputLocation);
+            SetProgressLabelText("Done");
+            
         }
         protected void SaveImage(Bitmap imageToSave)
         {
+            SetProgressLabelText("Saving image");
             imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
+            OpenImageFile(_outputLocation);
+            SetProgressLabelText("Done");
         }
 
         private void LoadImages()
@@ -145,10 +165,10 @@ namespace ThreadedMosaic
                     {
                         for (var x = 0; x < width; x++)
                         {
-                            var idx = (y * stride) + x * bppModifier;
-                            int red = pixel[idx + 2];
-                            int green = pixel[idx + 1];
-                            int blue = pixel[idx];
+                            var index = (y * stride) + x * bppModifier;
+                            int red = pixel[index + 2];
+                            int green = pixel[index + 1];
+                            int blue = pixel[index];
 
                             totals[2] += red;
                             totals[1] += green;
@@ -237,6 +257,7 @@ namespace ThreadedMosaic
         /// <returns></returns>
         protected Color[,] InitializeColorTiles(int imageWidth, int imageHeight)
         {
+            SetProgressLabelText("Initializing Color Tiles");
             Color[,] tileColors;
 
             var amountOfTilesInWidth = imageWidth / XPixelCount;
@@ -313,6 +334,81 @@ namespace ThreadedMosaic
                 }
                 return new Rectangle(xTopCoordinate, yTopCoordinate, tempXPixelCount, tempYPixelCount);
             }
+        }
+
+        protected void OpenImageFile(String imageLocation)
+        {
+            Process.Start(imageLocation);
+        }
+
+       
+        protected void SetProgressBarMaximum(int count)
+        {
+            _progressBar.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                this._progressBar.Maximum = count;
+                this._progressBar.Value = 0;
+            }));
+        }
+
+        protected void IncrementProgressBar()
+        {
+            _progressLabel.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _progressBar.Value++;
+            }));
+        }
+
+
+        protected void SetProgressLabelText(String text)
+        {
+            _progressLabel.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                this._progressLabel.Content = text;
+            }));
+        }
+
+        protected Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
+        {
+            var tileColors = InitializeColorTiles(sourceBitmap.Width, sourceBitmap.Height);
+            SetProgressLabelText("Calculating average of Tiles");
+            SetProgressBarMaximum(tileColors.GetLength(0) * tileColors.GetLength(1));
+
+            for (var x = 0; x < tileColors.GetLength(0); x++)
+            {
+                for (var y = 0; y < tileColors.GetLength(1); y++)
+                {
+                    var tempBitmap = new Bitmap(sourceBitmap);
+
+                    tileColors[x, y] = GetAverageColor(tempBitmap,
+                        CreateSizeAppropriateRectangle(x, y, tileColors, sourceBitmap.Width, sourceBitmap.Height));
+
+                    tempBitmap.Dispose();
+                    IncrementProgressBar();
+                }
+            }
+            /*
+             Bitmap[] bitmaps = new Bitmap[tileColors.GetLength(0)];
+             int width= tileColors.GetLength(0);
+             int height = tileColors.GetLength(1);
+
+             Parallel.For(0, width, x =>
+             {
+                 bitmaps[x] = (Bitmap)sourceBitmap.Clone();
+                 for (var y = 0; y < height; y++)
+                 {
+                     lock (tileColors)
+                     {
+                         tileColors[x, y] = GetAverageColor(bitmaps[x],
+                 CreateSizeAppropriateRectangle(x, y, (Color[,])tileColors.Clone(), sourceBitmap.Width, sourceBitmap.Height));
+ 
+                     }
+           
+                     bitmaps[x].Dispose();
+                     IncrementProgressBar();
+                 }
+             });*/
+            return tileColors;
         }
     }
 }

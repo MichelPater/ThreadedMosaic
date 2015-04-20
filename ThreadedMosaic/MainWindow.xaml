@@ -2,163 +2,146 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MainWindow"
-        Height="380"
-        Width="590"
+        Height="540"
+        Width="549"
         ResizeMode="NoResize">
     <Grid>
-        <TabControl HorizontalAlignment="Left"
-                    Height="334"
-                    Margin="10,10,0,0"
-                    VerticalAlignment="Top"
-                    Width="560">
-            <TabItem Header="TabItem">
-                <Grid Background="#FFE5E5E5">
-                    <GroupBox Header="Set Master Image"
-                              HorizontalAlignment="Left"
-                              Height="74"
-                              Margin="22,12,0,0"
-                              VerticalAlignment="Top"
-                              Width="497">
-                        <Grid HorizontalAlignment="Left"
-                              Height="54"
-                              Margin="10,0,-2,-2"
-                              VerticalAlignment="Bottom"
-                              Width="477">
-                            <TextBox x:Name="MasterImageTextBox"
-                                     HorizontalAlignment="Left"
-                                     Height="23"
-                                     Margin="10,10,0,0"
-                                     VerticalAlignment="Top"
-                                     Width="377" />
+        <Grid.Background>
+            <ImageBrush />
+        </Grid.Background>
+        <GroupBox Header="Set Master Image"
+                  HorizontalAlignment="Left"
+                  Height="74"
+                  Margin="22,12,0,0"
+                  VerticalAlignment="Top"
+                  Width="497">
+            <Grid HorizontalAlignment="Left"
+                  Height="54"
+                  Margin="10,0,-2,-2"
+                  VerticalAlignment="Bottom"
+                  Width="477">
+                <TextBox x:Name="MasterImageTextBox"
+                         HorizontalAlignment="Left"
+                         Height="23"
+                         Margin="10,10,0,0"
+                         VerticalAlignment="Top"
+                         Width="377" />
 
-                            <Button x:Name="MasterImageButton"
-                                    Content="Browse"
-                                    HorizontalAlignment="Left"
-                                    Margin="392,10,0,0"
-                                    VerticalAlignment="Top"
-                                    Width="75"
-                                    RenderTransformOrigin="-0.839,-3.529"
-                                    Click="MasterImageButton_Click" />
+                <Button x:Name="MasterImageButton"
+                        Content="Browse"
+                        HorizontalAlignment="Left"
+                        Margin="392,10,0,0"
+                        VerticalAlignment="Top"
+                        Width="75"
+                        RenderTransformOrigin="-0.839,-3.529"
+                        Click="MasterImageButton_Click" />
 
-                        </Grid>
+            </Grid>
 
 
 
-                    </GroupBox>
-                    <Button x:Name="ConvertButton"
-                            Content="Convert"
-                            HorizontalAlignment="Left"
-                            Margin="211,255,0,0"
-                            VerticalAlignment="Top"
-                            Width="75"
-                            Click="ConvertButton_Click"
-                            RenderTransformOrigin="0.4,3.05" />
-                    <GroupBox Header="Set Output Image Location"
-                              HorizontalAlignment="Left"
-                              Height="74"
-                              Margin="19,97,0,0"
-                              VerticalAlignment="Top"
-                              Width="497">
-                        <Grid HorizontalAlignment="Left"
-                              Height="54"
-                              Margin="10,0,-2,-2"
-                              VerticalAlignment="Bottom"
-                              Width="477">
-                            <TextBox x:Name="OutputImageTextbox"
-                                     HorizontalAlignment="Left"
-                                     Height="23"
-                                     Margin="10,10,0,0"
-                                     VerticalAlignment="Top"
-                                     Width="377" />
+        </GroupBox>
+        <Button x:Name="ConvertButton"
+                Content="Convert"
+                HorizontalAlignment="Left"
+                Margin="211,396,0,0"
+                VerticalAlignment="Top"
+                Width="75"
+                Click="ConvertButton_Click"
+                RenderTransformOrigin="0.4,3.05" />
+        <GroupBox Header="Set Output Image Location"
+                  HorizontalAlignment="Left"
+                  Height="74"
+                  Margin="22,187,0,0"
+                  VerticalAlignment="Top"
+                  Width="494">
+            <Grid HorizontalAlignment="Left"
+                  Height="54"
+                  Margin="10,0,-2,-2"
+                  VerticalAlignment="Bottom"
+                  Width="477">
+                <TextBox x:Name="OutputImageTextbox"
+                         HorizontalAlignment="Left"
+                         Height="23"
+                         Margin="10,10,0,0"
+                         VerticalAlignment="Top"
+                         Width="377" />
 
-                            <Button x:Name="OutputImageButton"
-                                    Content="Browse"
-                                    HorizontalAlignment="Left"
-                                    Margin="392,10,0,0"
-                                    VerticalAlignment="Top"
-                                    Width="75"
-                                    Click="OutputImageButton_Click"
-                                    RenderTransformOrigin="-0.839,-3.529" />
-                        </Grid>
-                    </GroupBox>
-                    <ProgressBar x:Name="ConversionProgress"
-                                 HorizontalAlignment="Left"
-                                 Height="20"
-                                 Margin="22,199,0,0"
-                                 VerticalAlignment="Top"
-                                 Width="497" />
-                    <RadioButton Content="Color Mosaic"
-                                 HorizontalAlignment="Left"
-                                 Margin="350,231,0,0"
-                                 VerticalAlignment="Top"
-                                 GroupName="mosaic"
-                                 Name="MosaicColorRadioButton"
-                                 IsChecked="True"/>
-                    <RadioButton Content="Hue Adjust Mosaic"
-                                 HorizontalAlignment="Left"
-                                 Margin="350,251,0,0"
-                                 VerticalAlignment="Top"
-                                 GroupName="mosaic"
-                                 Name="MosaicHueRadioButton"
-                                 IsChecked="False" />
-                    <RadioButton Content="Photo Mosaic"
-                                 HorizontalAlignment="Left"
-                                 Margin="350,271,0,0"
-                                 VerticalAlignment="Top"
-                                 GroupName="mosaic"
-                                 Name="MosaicPhotoRadioButton"
-                                 IsChecked="False"/>
-                </Grid>
-            </TabItem>
-            <TabItem Header="TabItem">
-                <Grid Background="#FFE5E5E5">
-                    <GroupBox Header="Set Seed Image Folder"
-                              HorizontalAlignment="Left"
-                              Height="74"
-                              Margin="22,12,0,0"
-                              VerticalAlignment="Top"
-                              Width="497">
-                        <Grid HorizontalAlignment="Left"
-                              Height="54"
-                              Margin="10,0,-2,-2"
-                              VerticalAlignment="Bottom"
-                              Width="477">
-                            <TextBox x:Name="SeedFolderTextbox"
-                                     HorizontalAlignment="Left"
-                                     Height="23"
-                                     Margin="10,10,0,0"
-                                     VerticalAlignment="Top"
-                                     Width="377" />
+                <Button x:Name="OutputImageButton"
+                        Content="Browse"
+                        HorizontalAlignment="Left"
+                        Margin="392,10,0,0"
+                        VerticalAlignment="Top"
+                        Width="75"
+                        Click="OutputImageButton_Click"
+                        RenderTransformOrigin="-0.839,-3.529" />
+            </Grid>
+        </GroupBox>
+        <ProgressBar x:Name="ProgressBar"
+                     HorizontalAlignment="Left"
+                     Height="20"
+                     Margin="22,292,0,0"
+                     VerticalAlignment="Top"
+                     Width="497"
+                     IsEnabled="True"/>
+        <RadioButton Content="Color Mosaic"
+                     HorizontalAlignment="Left"
+                     Margin="350,372,0,0"
+                     VerticalAlignment="Top"
+                     GroupName="mosaic"
+                     x:Name="MosaicColorRadioButton"
+                     IsChecked="True" />
+        <RadioButton Content="Hue Adjust Mosaic"
+                     HorizontalAlignment="Left"
+                     Margin="350,392,0,0"
+                     VerticalAlignment="Top"
+                     GroupName="mosaic"
+                     x:Name="MosaicHueRadioButton"
+                     IsChecked="False" />
+        <RadioButton Content="Photo Mosaic"
+                     HorizontalAlignment="Left"
+                     Margin="350,412,0,0"
+                     VerticalAlignment="Top"
+                     GroupName="mosaic"
+                     x:Name="MosaicPhotoRadioButton"
+                     IsChecked="False" />
+        <Label Content=""
+               x:Name="ProgressText"
+               HorizontalAlignment="Left"
+               Margin="22,328,0,0"
+               VerticalAlignment="Top"
+               Width="494" />
+        <GroupBox Header="Set Seed Image Folder"
+                  HorizontalAlignment="Left"
+                  Height="74"
+                  Margin="22,102,0,0"
+                  VerticalAlignment="Top"
+                  Width="497">
+            <Grid HorizontalAlignment="Left"
+                  Height="54"
+                  Margin="10,0,-2,-2"
+                  VerticalAlignment="Bottom"
+                  Width="477">
+                <TextBox x:Name="SeedFolderTextbox"
+                         HorizontalAlignment="Left"
+                         Height="23"
+                         Margin="10,10,0,0"
+                         VerticalAlignment="Top"
+                         Width="377" />
 
-                            <Button x:Name="SeedFolderButton"
-                                    Content="Browse"
-                                    HorizontalAlignment="Left"
-                                    Margin="392,10,0,0"
-                                    VerticalAlignment="Top"
-                                    Width="75"
-                                    Click="SeedFolderButton_Click"
-                                    RenderTransformOrigin="-0.839,-3.529" />
+                <Button x:Name="SeedFolderButton"
+                        Content="Browse"
+                        HorizontalAlignment="Left"
+                        Margin="392,10,0,0"
+                        VerticalAlignment="Top"
+                        Width="75"
+                        Click="SeedFolderButton_Click"
+                        RenderTransformOrigin="-0.839,-3.529" />
 
-                        </Grid>
+            </Grid>
 
 
 
-                    </GroupBox>
-                    <ProgressBar x:Name="ImageLoadProgressBar"
-                                 HorizontalAlignment="Left"
-                                 Height="20"
-                                 Margin="22,199,0,0"
-                                 VerticalAlignment="Top"
-                                 Width="497" />
-                    <Button x:Name="LoadButton"
-                            Content="Load"
-                            HorizontalAlignment="Left"
-                            Margin="211,255,0,0"
-                            VerticalAlignment="Top"
-                            Width="75"
-                            RenderTransformOrigin="0.4,3.05" />
-                </Grid>
-            </TabItem>
-        </TabControl>
+        </GroupBox>
     </Grid>
 </Window>

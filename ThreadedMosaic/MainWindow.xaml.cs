@@ -1,53 +1,70 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows;
 using System.Windows.Forms;
+using System.Windows.Input;
+using ThreadedMosaic.Mosaic;
+using MessageBox = System.Windows.MessageBox;
+using OpenFileDialog = Microsoft.Win32.OpenFileDialog;
 using SaveFileDialog = Microsoft.Win32.SaveFileDialog;
 
 namespace ThreadedMosaic
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    ///     Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow
     {
         public MainWindow()
         {
             InitializeComponent();
-            InitFields();
         }
 
         private void SeedFolderButton_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new FolderBrowserDialog();
-            DialogResult result = dialog.ShowDialog();
+            var result = dialog.ShowDialog();
             SeedFolderTextbox.Text = dialog.SelectedPath;
         }
 
         private void MasterImageButton_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new FolderBrowserDialog();
-            DialogResult result = dialog.ShowDialog();
-            MasterImageTextBox.Text = dialog.SelectedPath;
+            /* var dialog = new FolderBrowserDialog();
+             DialogResult result = dialog.ShowDialog();
+             MasterImageTextBox.Text = dialog.SelectedPath;*/
+
+            var dialog = new OpenFileDialog();
+
+            dialog.DefaultExt = ".jpg"; // Default file extension
+            dialog.Filter = "Image files (.jpg)|*.jpg"; // Filter files by extension
+
+            // Open document
+            var result = dialog.ShowDialog();
+
+            //Process the result and fill textbox
+            if (result == true)
+            {
+                MasterImageTextBox.Text = dialog.FileName;
+            }
         }
 
         private void OutputImageButton_Click(object sender, RoutedEventArgs e)
         {
-            SaveFileDialog dlg = new SaveFileDialog();
+            var dialog = new SaveFileDialog();
 
-            dlg.DefaultExt = ".jpg"; // Default file extension
-            dlg.Filter = "Image files (.jpg)|*.jpg"; // Filter files by extension
+            dialog.DefaultExt = ".jpg"; // Default file extension
+            dialog.Filter = "Image files (.jpg)|*.jpg"; // Filter files by extension
 
             // Show save file dialog box
-            Nullable<bool> result = dlg.ShowDialog();
+            var result = dialog.ShowDialog();
 
             // Process save file dialog box results
             if (result == true)
             {
-                // Save document
-                OutputImageTextbox.Text = dlg.FileName;
+                OutputImageTextbox.Text = dialog.FileName;
             }
         }
 
@@ -63,40 +80,45 @@ namespace ThreadedMosaic
                 if (files.Any() && !String.IsNullOrEmpty(MasterImageTextBox.Text))
                 {
                     //Check which option is selected
-                    if ((bool)MosaicColorRadioButton.IsChecked)
+                    if ((bool) MosaicColorRadioButton.IsChecked)
                     {
-                        ColorMosaic colorMosaic = new ColorMosaic(MasterImageTextBox.Text);
+                        var colorMosaic = new ColorMosaic(MasterImageTextBox.Text);
                         colorMosaic.SetProgressBar(ProgressBar, ProgressText);
+                        colorMosaic.SetPixelSize(int.Parse(PixelWidth.Text), int.Parse(PixelHeight.Text));
                         var ColorMosaicThread = new Thread(colorMosaic.CreateColorMosaic);
                         ColorMosaicThread.Start();
                     }
-                    else if ((bool)MosaicHueRadioButton.IsChecked)
+                    else if ((bool) MosaicHueRadioButton.IsChecked)
                     {
-                        HueMosaic hueMosaic = new HueMosaic(files.ToList(), MasterImageTextBox.Text);
+                        var hueMosaic = new HueMosaic(files.ToList(), MasterImageTextBox.Text);
                         hueMosaic.SetProgressBar(ProgressBar, ProgressText);
+                        hueMosaic.SetPixelSize(int.Parse(PixelWidth.Text), int.Parse(PixelHeight.Text));
                         var HueMosaicThread = new Thread(hueMosaic.CreateColorMosaic);
                         HueMosaicThread.Start();
-
                     }
-                    else if ((bool)MosaicPhotoRadioButton.IsChecked)
+                    else if ((bool) MosaicPhotoRadioButton.IsChecked)
                     {
-                        PhotoMosaic photoMosaic = new PhotoMosaic(files.ToList(), MasterImageTextBox.Text);
+                        var photoMosaic = new PhotoMosaic(files.ToList(), MasterImageTextBox.Text);
                         photoMosaic.SetProgressBar(ProgressBar, ProgressText);
+                        photoMosaic.SetPixelSize(int.Parse(PixelWidth.Text), int.Parse(PixelHeight.Text));
                         var photoMosaicThread = new Thread(photoMosaic.CreatePhotoMosaic);
                         photoMosaicThread.Start();
-                        /*
-                        Database database = new Database();
-                        database.CreateDatabase();*/
                     }
                 }
             }
             else
             {
-                //Display error
-                //either the folders are incorrect or there are no files
+                //Display error because something went wrong
+                var result = MessageBox.Show("Mosaic could not be started, are all filepaths correct?",
+                    "Something went wrong", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
+        /// <summary>
+        ///     Checks if a given path is a valid path by getting the full path and seeing if it generates an exception
+        /// </summary>
+        /// <param name="pathname"></param>
+        /// <returns></returns>
         private Boolean CheckValidPath(String pathname)
         {
             try
@@ -106,19 +128,29 @@ namespace ThreadedMosaic
             }
             catch (Exception)
             {
-
                 return false;
             }
         }
 
-        private void InitFields()
+        /// <summary>
+        ///     Event for textbox to check input
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
-            SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\3000";
-            //SeedFolderTextbox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\reddit_sub_foodporn";
-            //MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\2yk0c4-bLLw6IL.jpg";
-            MasterImageTextBox.Text = @"E:\Downloads\Internet Destroying Wallpaper Dump\033_PMmglpV.jpg";
-            
-            OutputImageTextbox.Text = @"C:\Users\Michel\Desktop\Output folder\" + DateTime.Now + ".jpg";
+            e.Handled = !IsTextAllowed(e.Text);
+        }
+
+        /// <summary>
+        ///     Check if text matches numeric input
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        private static bool IsTextAllowed(string text)
+        {
+            var regex = new Regex("[^0-9.-]+"); //regex that matches disallowed text
+            return !regex.IsMatch(text);
         }
     }
 }

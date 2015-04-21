@@ -1,7 +1,7 @@
 ﻿<Window x:Class="ThreadedMosaic.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow"
+        Title="Threading in C# Threaded Mosaic"
         Height="540"
         Width="549"
         ResizeMode="NoResize">
@@ -37,7 +37,6 @@
                         Click="MasterImageButton_Click" />
 
             </Grid>
-
 
 
         </GroupBox>
@@ -83,7 +82,7 @@
                      Margin="22,292,0,0"
                      VerticalAlignment="Top"
                      Width="497"
-                     IsEnabled="True"/>
+                     IsEnabled="True" />
         <RadioButton Content="Color Mosaic"
                      HorizontalAlignment="Left"
                      Margin="350,372,0,0"
@@ -141,7 +140,34 @@
             </Grid>
 
 
-
         </GroupBox>
+        <TextBox x:Name="PixelWidth"
+                 HorizontalAlignment="Left"
+                 PreviewTextInput="PreviewTextInput"
+                 Height="23"
+                 Margin="22,372,0,0"
+                 TextWrapping="Wrap"
+                 Text="40"
+                 VerticalAlignment="Top"
+                 Width="54"
+                 MaxLines="1" />
+        <TextBox x:Name="PixelHeight"
+                 HorizontalAlignment="Left"
+                 PreviewTextInput="PreviewTextInput"
+                 Height="23"
+                 Margin="22,406,0,0"
+                 TextWrapping="Wrap"
+                 Text="40"
+                 VerticalAlignment="Top"
+                 Width="54"
+                 MaxLines="1" />
+        <Label Content="pixels in Width"
+               HorizontalAlignment="Left"
+               Margin="81,368,0,0"
+               VerticalAlignment="Top" />
+        <Label Content="pixels in Height"
+               HorizontalAlignment="Left"
+               Margin="81,402,0,0"
+               VerticalAlignment="Top" />
     </Grid>
 </Window>

@@ -12,15 +12,15 @@ namespace ThreadedMosaic.Mosaic
     {
         private readonly ConcurrentBag<LoadedImage> _concurrentBag = new ConcurrentBag<LoadedImage>();
 
-        public HueMosaic(List<String> fileLocations, String masterFileLocation)
-            : base(fileLocations, masterFileLocation)
+        public HueMosaic(List<String> fileLocations, String masterFileLocation, String outputFileLocation)
+            : base(fileLocations, masterFileLocation, outputFileLocation)
         {
         }
 
         public void CreateColorMosaic()
         {
             LoadImages();
-            SaveImage(CreateMosaic(GetColorTilesFromBitmap(_masterBitmap)));
+            SaveImage(CreateMosaic(GetColorTilesFromBitmap(MasterBitmap)));
         }
 
         protected override void BuildImage(Graphics graphics, int xCoordinate, int yCoordinate, Color[,] tileColors)
@@ -60,9 +60,9 @@ namespace ThreadedMosaic.Mosaic
         private void LoadImages()
         {
             SetProgressLabelText("Start of Loading Images:");
-            SetProgressBarMaximum(_fileLocations.Count);
+            SetProgressBarMaximum(FileLocations.Count);
 
-            Parallel.ForEach(_fileLocations, currentFile =>
+            Parallel.ForEach(FileLocations, currentFile =>
             {
                 try
                 {
@@ -70,12 +70,12 @@ namespace ThreadedMosaic.Mosaic
                 }
                 finally
                 {
-                    Interlocked.Increment(ref _current);
-                    SetProgressLabelText("Amount of Images loaded: " + _current);
+                    Interlocked.Increment(ref Current);
+                    SetProgressLabelText("Amount of Images loaded: " + Current);
                     IncrementProgressBar();
                 }
             });
-            SetProgressLabelText("Skipped Entries: " + (_fileLocations.Count - _concurrentBag.Count));
+            SetProgressLabelText("Skipped Entries: " + (FileLocations.Count - _concurrentBag.Count));
         }
     }
 }

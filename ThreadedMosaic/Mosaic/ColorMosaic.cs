@@ -5,7 +5,8 @@ namespace ThreadedMosaic.Mosaic
 {
     internal class ColorMosaic : Mosaic
     {
-        public ColorMosaic(String masterFileLocation) : base(masterFileLocation)
+        public ColorMosaic(String masterFileLocation, String outputFileLocation)
+            : base(masterFileLocation, outputFileLocation)
         {
         }
 
@@ -14,7 +15,7 @@ namespace ThreadedMosaic.Mosaic
         /// </summary>
         public void CreateColorMosaic()
         {
-            SaveImage(CreateMosaic(GetColorTilesFromBitmap(_masterBitmap)));
+            SaveImage(CreateMosaic(GetColorTilesFromBitmap(MasterBitmap)));
         }
 
         /// <summary>

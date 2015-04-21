@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Imaging;
-using System.Globalization;
 using System.Runtime.ExceptionServices;
 using System.Windows.Controls;
 using Image = System.Drawing.Image;
@@ -12,31 +11,30 @@ namespace ThreadedMosaic.Mosaic
 {
     public abstract class Mosaic
     {
-        protected readonly List<String> _fileLocations;
-        protected readonly Bitmap _masterBitmap;
-        protected readonly String _masterFileLocation;
+        protected readonly List<String> FileLocations;
+        protected readonly Bitmap MasterBitmap;
+        protected readonly String MasterFileLocation;
+        protected readonly String OutputFilelocation;
 
-        private readonly String _outputLocation = @"C:\Users\Michel\Desktop\Output folder\" +
-                                                  DateTime.Now.ToString(CultureInfo.CurrentCulture).Replace(':', '-') +
-                                                  ".jpeg";
-
-        protected long _current;
-        protected ProgressBar _progressBar;
-        protected Label _progressLabel;
+        protected long Current;
+        protected ProgressBar ProgressBar;
+        protected Label ProgressLabel;
         public int XPixelCount = 40;
         public int YPixelCount = 40;
 
-        public Mosaic(String masterFileLocation)
+        public Mosaic(String masterFileLocation, String outputFilelocation)
         {
-            _masterFileLocation = masterFileLocation;
-            _masterBitmap = GetBitmapFromFileName(masterFileLocation);
+            MasterFileLocation = masterFileLocation;
+            MasterBitmap = GetBitmapFromFileName(masterFileLocation);
+            OutputFilelocation = outputFilelocation;
         }
 
-        public Mosaic(List<String> fileLocations, String masterFileLocation)
+        public Mosaic(List<String> fileLocations, String masterFileLocation, String outputFilelocation)
         {
-            _fileLocations = fileLocations;
-            _masterFileLocation = masterFileLocation;
-            _masterBitmap = GetBitmapFromFileName(masterFileLocation);
+            FileLocations = fileLocations;
+            MasterFileLocation = masterFileLocation;
+            MasterBitmap = GetBitmapFromFileName(masterFileLocation);
+            OutputFilelocation = outputFilelocation;
         }
 
         /// <summary>
@@ -46,8 +44,8 @@ namespace ThreadedMosaic.Mosaic
         /// <param name="progressBarLabel">The label with text updates</param>
         public void SetProgressBar(ProgressBar progressBar, Label progressBarLabel)
         {
-            _progressBar = progressBar;
-            _progressLabel = progressBarLabel;
+            ProgressBar = progressBar;
+            ProgressLabel = progressBarLabel;
         }
 
         /// <summary>
@@ -57,8 +55,8 @@ namespace ThreadedMosaic.Mosaic
         protected void SaveImage(Image imageToSave)
         {
             SetProgressLabelText("Saving image");
-            imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
-            OpenImageFile(_outputLocation);
+            imageToSave.Save(OutputFilelocation, ImageFormat.Jpeg);
+            OpenImageFile(OutputFilelocation);
             SetProgressLabelText("Done");
         }
 
@@ -69,8 +67,8 @@ namespace ThreadedMosaic.Mosaic
         protected void SaveImage(Bitmap imageToSave)
         {
             SetProgressLabelText("Saving image");
-            imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
-            OpenImageFile(_outputLocation);
+            imageToSave.Save(OutputFilelocation, ImageFormat.Jpeg);
+            OpenImageFile(OutputFilelocation);
             SetProgressLabelText("Done");
         }
 
@@ -258,21 +256,21 @@ namespace ThreadedMosaic.Mosaic
 
         protected void SetProgressBarMaximum(int count)
         {
-            _progressBar.Dispatcher.BeginInvoke(new Action(() =>
+            ProgressBar.Dispatcher.BeginInvoke(new Action(() =>
             {
-                _progressBar.Maximum = count;
-                _progressBar.Value = 0;
+                ProgressBar.Maximum = count;
+                ProgressBar.Value = 0;
             }));
         }
 
         protected void IncrementProgressBar()
         {
-            _progressLabel.Dispatcher.BeginInvoke(new Action(() => { _progressBar.Value++; }));
+            ProgressLabel.Dispatcher.BeginInvoke(new Action(() => { ProgressBar.Value++; }));
         }
 
         protected void SetProgressLabelText(String text)
         {
-            _progressLabel.Dispatcher.BeginInvoke(new Action(() => { _progressLabel.Content = text; }));
+            ProgressLabel.Dispatcher.BeginInvoke(new Action(() => { ProgressLabel.Content = text; }));
         }
 
         protected Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
@@ -349,7 +347,7 @@ namespace ThreadedMosaic.Mosaic
         /// <returns></returns>
         protected Image CreateMosaic(Color[,] tileColors)
         {
-            var mosaicImage = Image.FromFile(_masterFileLocation);
+            var mosaicImage = Image.FromFile(MasterFileLocation);
 
             using (var graphics = Graphics.FromImage(mosaicImage))
             {

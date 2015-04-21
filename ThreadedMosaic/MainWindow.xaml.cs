@@ -26,16 +26,12 @@ namespace ThreadedMosaic
         private void SeedFolderButton_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new FolderBrowserDialog();
-            var result = dialog.ShowDialog();
+            dialog.ShowDialog();
             SeedFolderTextbox.Text = dialog.SelectedPath;
         }
 
         private void MasterImageButton_Click(object sender, RoutedEventArgs e)
         {
-            /* var dialog = new FolderBrowserDialog();
-             DialogResult result = dialog.ShowDialog();
-             MasterImageTextBox.Text = dialog.SelectedPath;*/
-
             var dialog = new OpenFileDialog();
 
             dialog.DefaultExt = ".jpg"; // Default file extension
@@ -82,7 +78,7 @@ namespace ThreadedMosaic
                     //Check which option is selected
                     if ((bool) MosaicColorRadioButton.IsChecked)
                     {
-                        var colorMosaic = new ColorMosaic(MasterImageTextBox.Text);
+                        var colorMosaic = new ColorMosaic(MasterImageTextBox.Text, OutputImageTextbox.Text);
                         colorMosaic.SetProgressBar(ProgressBar, ProgressText);
                         colorMosaic.SetPixelSize(int.Parse(PixelWidth.Text), int.Parse(PixelHeight.Text));
                         var ColorMosaicThread = new Thread(colorMosaic.CreateColorMosaic);
@@ -90,7 +86,7 @@ namespace ThreadedMosaic
                     }
                     else if ((bool) MosaicHueRadioButton.IsChecked)
                     {
-                        var hueMosaic = new HueMosaic(files.ToList(), MasterImageTextBox.Text);
+                        var hueMosaic = new HueMosaic(files.ToList(), MasterImageTextBox.Text, OutputImageTextbox.Text);
                         hueMosaic.SetProgressBar(ProgressBar, ProgressText);
                         hueMosaic.SetPixelSize(int.Parse(PixelWidth.Text), int.Parse(PixelHeight.Text));
                         var HueMosaicThread = new Thread(hueMosaic.CreateColorMosaic);
@@ -98,7 +94,7 @@ namespace ThreadedMosaic
                     }
                     else if ((bool) MosaicPhotoRadioButton.IsChecked)
                     {
-                        var photoMosaic = new PhotoMosaic(files.ToList(), MasterImageTextBox.Text);
+                        var photoMosaic = new PhotoMosaic(files.ToList(), MasterImageTextBox.Text, OutputImageTextbox.Text);
                         photoMosaic.SetProgressBar(ProgressBar, ProgressText);
                         photoMosaic.SetPixelSize(int.Parse(PixelWidth.Text), int.Parse(PixelHeight.Text));
                         var photoMosaicThread = new Thread(photoMosaic.CreatePhotoMosaic);
@@ -109,7 +105,7 @@ namespace ThreadedMosaic
             else
             {
                 //Display error because something went wrong
-                var result = MessageBox.Show("Mosaic could not be started, are all filepaths correct?",
+                MessageBox.Show("Mosaic could not be started, are all filepaths correct?",
                     "Something went wrong", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -137,7 +133,7 @@ namespace ThreadedMosaic
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void PreviewTextInput(object sender, TextCompositionEventArgs e)
+        private new void PreviewTextInput(object sender, TextCompositionEventArgs e)
         {
             e.Handled = !IsTextAllowed(e.Text);
         }

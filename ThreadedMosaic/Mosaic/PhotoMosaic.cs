@@ -15,8 +15,8 @@ namespace ThreadedMosaic.Mosaic
         private ConcurrentBag<LoadedImage> _concurrentBag = new ConcurrentBag<LoadedImage>();
         private ConcurrentBag<LoadedImage> _alreadySelectedImages = new ConcurrentBag<LoadedImage>();
 
-        public PhotoMosaic(List<String> fileLocations, String masterFileLocation)
-            : base(fileLocations, masterFileLocation)
+        public PhotoMosaic(List<String> fileLocations, String masterFileLocation, String outputFileLocation)
+            : base(fileLocations, masterFileLocation, outputFileLocation)
         {
 
         }
@@ -24,7 +24,7 @@ namespace ThreadedMosaic.Mosaic
         public void CreatePhotoMosaic()
         {
             LoadImages();
-            SaveImage(CreateMosaic(GetColorTilesFromBitmap(_masterBitmap)));
+            SaveImage(CreateMosaic(GetColorTilesFromBitmap(MasterBitmap)));
         }
 
 
@@ -153,9 +153,9 @@ namespace ThreadedMosaic.Mosaic
         private void LoadImages()
         {
             SetProgressLabelText("Loading Images");
-            SetProgressBarMaximum(_fileLocations.Count);
+            SetProgressBarMaximum(FileLocations.Count);
 
-            Parallel.ForEach(_fileLocations, currentFile =>
+            Parallel.ForEach(FileLocations, currentFile =>
             {
                 try
                 {
@@ -167,13 +167,13 @@ namespace ThreadedMosaic.Mosaic
                 }
                 finally
                 {
-                    Interlocked.Increment(ref _current);
-                    SetProgressLabelText("Amount of Images loaded: " + _current);
+                    Interlocked.Increment(ref Current);
+                    SetProgressLabelText("Amount of Images loaded: " + Current);
                     IncrementProgressBar();
                 }
             });
             //Update gui
-            SetProgressLabelText("Skipped Entries: " + (_fileLocations.Count - _concurrentBag.Count));
+            SetProgressLabelText("Skipped Entries: " + (FileLocations.Count - _concurrentBag.Count));
         }
     }
 }

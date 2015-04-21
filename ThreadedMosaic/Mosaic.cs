@@ -17,8 +17,8 @@ namespace ThreadedMosaic
 {
     public class Mosaic
     {
-        public const int XPixelCount = 40;
-        public const int YPixelCount = 40;
+        public int XPixelCount = 40;
+        public int YPixelCount = 40;
         protected readonly List<String> _fileLocations;
         protected readonly Bitmap _masterBitmap;
         protected readonly String _masterFileLocation;
@@ -45,7 +45,7 @@ namespace ThreadedMosaic
 
             //Assemble image from found gridelements
         }
-    
+
         public Mosaic(String masterFileLocation)
         {
             _masterFileLocation = masterFileLocation;
@@ -58,7 +58,7 @@ namespace ThreadedMosaic
             _masterFileLocation = masterFileLocation;
             _masterBitmap = GetBitmapFromFileName(masterFileLocation);
         }
-        
+
         public void SetProgressBar(ProgressBar progressBar, Label progressBarLabel)
         {
             _progressBar = progressBar;
@@ -71,7 +71,7 @@ namespace ThreadedMosaic
             imageToSave.Save(_outputLocation, ImageFormat.Jpeg);
             OpenImageFile(_outputLocation);
             SetProgressLabelText("Done");
-            
+
         }
         protected void SaveImage(Bitmap imageToSave)
         {
@@ -81,42 +81,14 @@ namespace ThreadedMosaic
             SetProgressLabelText("Done");
         }
 
-        private void LoadImages()
-        {
-            Console.WriteLine("Start of Loading Images: " + DateTime.Now);
-            var concurrentBag = new ConcurrentBag<LoadedImage>();
-            Parallel.ForEach(_fileLocations, currentFile =>
-            {
-                try
-                {
-                    var averageColor = GetMostPrevelantColor(GetBitmapFromFileName(currentFile));
 
-                    if (averageColor != new Color())
-                    {
-                        concurrentBag.Add(new LoadedImage { FilePath = currentFile, AverageColor = averageColor });
-                    }
-                }
-                finally
-                {
-                    Interlocked.Increment(ref _current);
-                    Console.WriteLine(_current);
-                }
-            });
 
-            /*
-            foreach (var currentFile in _filesNames)
-            {
-                Console.WriteLine("A file in _fileNames: " + currentFile);
-                concurrentBag.Add(new Tile { FilePath = currentFile, AverageColor = GetQuickAverageColor(GetBitmapFromFileName(currentFile)) });
-            }
-            */
-            Console.WriteLine("End of Loading images: " + DateTime.Now);
-            Console.WriteLine("Amount of entries in concurrentbag: " + concurrentBag.Count);
-            Console.WriteLine("Amount of entires in List: " + _fileLocations.Count);
-            Console.WriteLine("Skipped Entries : " + (_fileLocations.Count - concurrentBag.Count));
-        }
-
-        private Bitmap GetBitmapFromFileName(String filePath)
+        /// <summary>
+        /// Loads a bitmap from a filelocation
+        /// </summary>
+        /// <param name="filePath"></param>
+        /// <returns></returns>
+        protected Bitmap GetBitmapFromFileName(String filePath)
         {
             var bLoaded = false;
             Bitmap bitmap = null;
@@ -135,12 +107,23 @@ namespace ThreadedMosaic
             return bitmap;
         }
 
+        /// <summary>
+        /// Gets a ColorAverage of a whole bitmap
+        /// </summary>
+        /// <param name="bitmap"></param>
+        /// <returns></returns>
         [HandleProcessCorruptedStateExceptions]
         protected Color GetAverageColor(Bitmap bitmap)
         {
             return GetAverageColor(bitmap, new Rectangle(0, 0, bitmap.Width, bitmap.Height));
         }
 
+        /// <summary>
+        /// Gets the Average color of a Bitmap within a divined subdivision
+        /// </summary>
+        /// <param name="bitmap">The source image</param>
+        /// <param name="subDivision">The location that is being calculated</param>
+        /// <returns></returns>
         [HandleProcessCorruptedStateExceptions]
         protected Color GetAverageColor(Bitmap bitmap, Rectangle subDivision)
         {
@@ -150,13 +133,14 @@ namespace ThreadedMosaic
                 var height = subDivision.Height;
                 long[] totals = { 0, 0, 0 };
                 var bppModifier = bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4;
-                // cutting corners, will fail on anything else but 32 and 24 bit images
+                // cutting corners, will fail on anything else but 32 and 24 bit images, but is acceptable about 40 in 12000 fail
 
                 var srcData = bitmap.LockBits(subDivision, ImageLockMode.ReadOnly, bitmap.PixelFormat);
 
                 var stride = srcData.Stride;
                 var scan0 = srcData.Scan0;
 
+                //Run a parallel anaylisis on each pixel
                 unsafe
                 {
                     var pixel = (byte*)(void*)scan0;
@@ -165,6 +149,7 @@ namespace ThreadedMosaic
                     {
                         for (var x = 0; x < width; x++)
                         {
+                            //Get a pixel and add it to the array
                             var index = (y * stride) + x * bppModifier;
                             int red = pixel[index + 2];
                             int green = pixel[index + 1];
@@ -176,7 +161,7 @@ namespace ThreadedMosaic
                         }
                     }
                 }
-
+                //Calculate the average of each channel
                 var count = width * height;
                 var avgR = (int)(totals[2] / count);
                 var avgG = (int)(totals[1] / count);
@@ -191,63 +176,7 @@ namespace ThreadedMosaic
             }
         }
 
-        private Color GetMostPrevelantColor(Bitmap sourceBitmap)
-        {
-            var mostUsedColors =
-                GetPixels(sourceBitmap)
-                    .GroupBy(color => color)
-                    .OrderByDescending(grp => grp.Count())
-                    .Select(grp => grp.Key)
-                    .Take(1);
-            /*
-            foreach (var color in mostUsedColors)
-            {
-                Console.WriteLine("Color {0}", color);
-            }*/
-            return mostUsedColors.ToList()[0];
-        }
 
-        [HandleProcessCorruptedStateExceptions]
-        private IEnumerable<Color> GetPixels(Bitmap bitmap)
-        {
-            try
-            {
-                var colors = new List<Color>();
-
-                var width = bitmap.Width;
-                var height = bitmap.Height;
-                var bppModifier = bitmap.PixelFormat == PixelFormat.Format24bppRgb ? 3 : 4;
-                var srcData = bitmap.LockBits(new Rectangle(0, 0, bitmap.Width, bitmap.Height), ImageLockMode.ReadOnly,
-                    bitmap.PixelFormat);
-
-                var stride = srcData.Stride;
-                var scan0 = srcData.Scan0;
-
-                unsafe
-                {
-                    var pixel = (byte*)(void*)scan0;
-
-                    for (var y = 0; y < height; y++)
-                    {
-                        for (var x = 0; x < width; x++)
-                        {
-                            var idx = (y * stride) + x * bppModifier;
-                            int red = pixel[idx + 2];
-                            int green = pixel[idx + 1];
-                            int blue = pixel[idx];
-
-                            colors.Add(Color.FromArgb(red, green, blue));
-                        }
-                    }
-                }
-                bitmap.Dispose();
-                return colors;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
 
         /// <summary>
         /// Initalizes the ColorArray with the correct width and height depending on the imagewidth and heigh
@@ -341,7 +270,6 @@ namespace ThreadedMosaic
             Process.Start(imageLocation);
         }
 
-       
         protected void SetProgressBarMaximum(int count)
         {
             _progressBar.Dispatcher.BeginInvoke(new Action(() =>
@@ -409,6 +337,21 @@ namespace ThreadedMosaic
                  }
              });*/
             return tileColors;
+        }
+        protected Image ResizeImage(Image imgToResize, Size size)
+        {
+            return (Image)(new Bitmap(imgToResize, size));
+        }
+
+        /// <summary>
+        /// Sets the pixel size of the tiles used in the mosaic
+        /// </summary>
+        /// <param name="widthInPixels">The width in pixels</param>
+        /// <param name="heightInPixels">The height in pixels</param>
+        public void SetPixelSize(int widthInPixels, int heightInPixels)
+        {
+            XPixelCount = widthInPixels;
+            YPixelCount = heightInPixels;
         }
     }
 }

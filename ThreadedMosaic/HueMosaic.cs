@@ -11,6 +11,7 @@ namespace ThreadedMosaic
 {
     class HueMosaic : Mosaic
     {
+        private ConcurrentBag<LoadedImage> _concurrentBag = new ConcurrentBag<LoadedImage>(); 
         public HueMosaic(List<String> fileLocations, String masterFileLocation)
             : base(fileLocations, masterFileLocation)
         {
@@ -62,29 +63,23 @@ namespace ThreadedMosaic
         {
             Random random = new Random(DateTime.Now.Millisecond);
 
-            int number = random.Next(0, _fileLocations.Count);
-            Image randomImage = Image.FromFile(_fileLocations[number]);
+            int number = random.Next(0, _concurrentBag.Count);
+            Image randomImage = Image.FromFile(_concurrentBag.ToList()[number].FilePath);
             GC.Collect();
             return randomImage;
         }
-
-        private Image ResizeImage(Image imgToResize, Size size)
-        {
-            return (Image)(new Bitmap(imgToResize, size));
-        }
-
+        
         private void LoadImages()
         {
             Console.WriteLine("Start of Loading Images: " + DateTime.Now);
-            SetProgressLabelText("Calculating average of Tiles");
+            SetProgressLabelText("Start of Loading Images:");
             SetProgressBarMaximum(_fileLocations.Count);
 
-            var concurrentBag = new ConcurrentBag<LoadedImage>();
             Parallel.ForEach(_fileLocations, currentFile =>
             {
                 try
                 {
-                    concurrentBag.Add(new LoadedImage { FilePath = currentFile });
+                    _concurrentBag.Add(new LoadedImage { FilePath = currentFile });
                 }
                 finally
                 {
@@ -95,10 +90,10 @@ namespace ThreadedMosaic
             });
 
             Console.WriteLine("End of Loading images: " + DateTime.Now);
-            Console.WriteLine("Amount of entries in concurrentbag: " + concurrentBag.Count);
+            Console.WriteLine("Amount of entries in concurrentbag: " + _concurrentBag.Count);
             Console.WriteLine("Amount of entires in List: " + _fileLocations.Count);
-            Console.WriteLine("Skipped Entries : " + (_fileLocations.Count - concurrentBag.Count));
-            SetProgressLabelText("Skipped Entries: " + (_fileLocations.Count - concurrentBag.Count));
+            Console.WriteLine("Skipped Entries : " + (_fileLocations.Count - _concurrentBag.Count));
+            SetProgressLabelText("Skipped Entries: " + (_fileLocations.Count - _concurrentBag.Count));
         }
     }
 }

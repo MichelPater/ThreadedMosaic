@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build)",
+      "Bash(msbuild:*)",
+      "Bash(dotnet build:*)",
+      "Bash(where msbuild)"
+    ],
+    "deny": []
+  }
+}

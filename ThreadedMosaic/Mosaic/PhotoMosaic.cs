@@ -18,7 +18,11 @@ namespace ThreadedMosaic.Mosaic
         public PhotoMosaic(List<String> fileLocations, String masterFileLocation, String outputFileLocation)
             : base(fileLocations, masterFileLocation, outputFileLocation)
         {
+        }
 
+        public PhotoMosaic(List<String> fileLocations, String masterFileLocation, String outputFileLocation, IProgressReporter progressReporter)
+            : base(fileLocations, masterFileLocation, outputFileLocation, progressReporter)
+        {
         }
 
         public void CreatePhotoMosaic()
@@ -152,8 +156,8 @@ namespace ThreadedMosaic.Mosaic
         /// </summary>
         private void LoadImages()
         {
-            SetProgressLabelText("Loading Images");
-            SetProgressBarMaximum(FileLocations.Count);
+            ProgressReporter.UpdateStatus("Loading Images");
+            ProgressReporter.SetMaximum(FileLocations.Count);
 
             Parallel.ForEach(FileLocations, currentFile =>
             {
@@ -168,12 +172,12 @@ namespace ThreadedMosaic.Mosaic
                 finally
                 {
                     Interlocked.Increment(ref Current);
-                    SetProgressLabelText("Amount of Images loaded: " + Current);
-                    IncrementProgressBar();
+                    ProgressReporter.UpdateStatus("Amount of Images loaded: " + Current);
+                    ProgressReporter.IncrementProgress();
                 }
             });
             //Update gui
-            SetProgressLabelText("Skipped Entries: " + (FileLocations.Count - _concurrentBag.Count));
+            ProgressReporter.UpdateStatus("Skipped Entries: " + (FileLocations.Count - _concurrentBag.Count));
         }
     }
 }

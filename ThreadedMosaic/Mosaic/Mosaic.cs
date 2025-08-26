@@ -17,35 +17,54 @@ namespace ThreadedMosaic.Mosaic
         protected readonly String OutputFilelocation;
 
         protected long Current;
-        protected ProgressBar ProgressBar;
-        protected Label ProgressLabel;
+        protected IProgressReporter ProgressReporter;
         public int XPixelCount = 40;
         public int YPixelCount = 40;
 
-        public Mosaic(String masterFileLocation, String outputFilelocation)
+        public Mosaic(String masterFileLocation, String outputFilelocation) 
+            : this(masterFileLocation, outputFilelocation, NullProgressReporter.Instance)
+        {
+        }
+
+        public Mosaic(String masterFileLocation, String outputFilelocation, IProgressReporter progressReporter)
         {
             MasterFileLocation = masterFileLocation;
             MasterBitmap = GetBitmapFromFileName(masterFileLocation);
             OutputFilelocation = outputFilelocation;
+            ProgressReporter = progressReporter ?? NullProgressReporter.Instance;
         }
 
         public Mosaic(List<String> fileLocations, String masterFileLocation, String outputFilelocation)
+            : this(fileLocations, masterFileLocation, outputFilelocation, NullProgressReporter.Instance)
+        {
+        }
+
+        public Mosaic(List<String> fileLocations, String masterFileLocation, String outputFilelocation, IProgressReporter progressReporter)
         {
             FileLocations = fileLocations;
             MasterFileLocation = masterFileLocation;
             MasterBitmap = GetBitmapFromFileName(masterFileLocation);
             OutputFilelocation = outputFilelocation;
+            ProgressReporter = progressReporter ?? NullProgressReporter.Instance;
         }
 
         /// <summary>
-        ///     Sets the Progressbar and the ProgressBarLabel
+        ///     Sets the progress reporter for UI updates
+        /// </summary>
+        /// <param name="progressReporter">The progress reporter implementation</param>
+        public void SetProgressReporter(IProgressReporter progressReporter)
+        {
+            ProgressReporter = progressReporter ?? NullProgressReporter.Instance;
+        }
+
+        /// <summary>
+        ///     Sets the Progressbar and the ProgressBarLabel (legacy method for backward compatibility)
         /// </summary>
         /// <param name="progressBar">The physical progressbar</param>
         /// <param name="progressBarLabel">The label with text updates</param>
         public void SetProgressBar(ProgressBar progressBar, Label progressBarLabel)
         {
-            ProgressBar = progressBar;
-            ProgressLabel = progressBarLabel;
+            SetProgressReporter(new WpfProgressReporter(progressBar, progressBarLabel));
         }
 
         /// <summary>
@@ -54,10 +73,10 @@ namespace ThreadedMosaic.Mosaic
         /// <param name="imageToSave"></param>
         protected void SaveImage(Image imageToSave)
         {
-            SetProgressLabelText("Saving image");
+            ProgressReporter.UpdateStatus("Saving image");
             imageToSave.Save(OutputFilelocation, ImageFormat.Jpeg);
             OpenImageFile(OutputFilelocation);
-            SetProgressLabelText("Done");
+            ProgressReporter.UpdateStatus("Done");
         }
 
         /// <summary>
@@ -161,7 +180,7 @@ namespace ThreadedMosaic.Mosaic
         /// <returns></returns>
         protected Color[,] InitializeColorTiles(int imageWidth, int imageHeight)
         {
-            SetProgressLabelText("Initializing Color Tiles");
+            ProgressReporter.UpdateStatus("Initializing Color Tiles");
             Color[,] tileColors;
 
             var amountOfTilesInWidth = imageWidth/XPixelCount;
@@ -244,28 +263,24 @@ namespace ThreadedMosaic.Mosaic
 
         protected void SetProgressBarMaximum(int count)
         {
-            ProgressBar.Dispatcher.BeginInvoke(new Action(() =>
-            {
-                ProgressBar.Maximum = count;
-                ProgressBar.Value = 0;
-            }));
+            ProgressReporter.SetMaximum(count);
         }
 
         protected void IncrementProgressBar()
         {
-            ProgressLabel.Dispatcher.BeginInvoke(new Action(() => { ProgressBar.Value++; }));
+            ProgressReporter.IncrementProgress();
         }
 
         protected void SetProgressLabelText(String text)
         {
-            ProgressLabel.Dispatcher.BeginInvoke(new Action(() => { ProgressLabel.Content = text; }));
+            ProgressReporter.UpdateStatus(text);
         }
 
         protected Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
         {
             var tileColors = InitializeColorTiles(sourceBitmap.Width, sourceBitmap.Height);
-            SetProgressLabelText("Calculating average of Tiles");
-            SetProgressBarMaximum(tileColors.GetLength(0)*tileColors.GetLength(1));
+            ProgressReporter.UpdateStatus("Calculating average of Tiles");
+            ProgressReporter.SetMaximum(tileColors.GetLength(0)*tileColors.GetLength(1));
 
             for (var x = 0; x < tileColors.GetLength(0); x++)
             {
@@ -339,7 +354,7 @@ namespace ThreadedMosaic.Mosaic
 
             using (var graphics = Graphics.FromImage(mosaicImage))
             {
-                SetProgressBarMaximum(tileColors.GetLength(0)*tileColors.GetLength(1));
+                ProgressReporter.SetMaximum(tileColors.GetLength(0)*tileColors.GetLength(1));
                 for (var x = 0; x < tileColors.GetLength(0); x++)
                 {
                     for (var y = 0; y < tileColors.GetLength(1); y++)
@@ -347,8 +362,8 @@ namespace ThreadedMosaic.Mosaic
                         BuildImage(graphics, x, y, tileColors);
 
                         //Update GUI information
-                        SetProgressLabelText("Building Image, Coordinate x | y : " + x + " | " + y);
-                        IncrementProgressBar();
+                        ProgressReporter.UpdateStatus("Building Image, Coordinate x | y : " + x + " | " + y);
+                        ProgressReporter.IncrementProgress();
                     }
                 }
             }

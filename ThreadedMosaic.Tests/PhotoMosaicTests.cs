@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Windows.Controls;
 using FluentAssertions;
 using ThreadedMosaic.Mosaic;
 using Xunit;
@@ -69,13 +68,6 @@ namespace ThreadedMosaic.Tests
             }
         }
 
-        private void SetupMockUIComponents(ThreadedMosaic.Mosaic.Mosaic mosaic)
-        {
-            // Create mock UI components to prevent null reference exceptions
-            var mockProgressBar = new ProgressBar();
-            var mockLabel = new Label();
-            mosaic.SetProgressBar(mockProgressBar, mockLabel);
-        }
 
         [Fact]
         public void Constructor_Should_Initialize_With_Valid_Parameters()
@@ -124,7 +116,6 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
-            SetupMockUIComponents(photoMosaic);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -137,7 +128,6 @@ namespace ThreadedMosaic.Tests
             // Arrange
             var emptyFileLocations = new List<string>();
             var photoMosaic = new PhotoMosaic(emptyFileLocations, _testImagePath, _outputPath);
-            SetupMockUIComponents(photoMosaic);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -167,7 +157,6 @@ namespace ThreadedMosaic.Tests
             // Arrange
             var singleImageList = new List<string> { _testImagePath };
             var photoMosaic = new PhotoMosaic(singleImageList, _testImagePath, _outputPath);
-            SetupMockUIComponents(photoMosaic);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -185,7 +174,6 @@ namespace ThreadedMosaic.Tests
                 manyImages.Add(_testImagePath2);
             }
             var photoMosaic = new PhotoMosaic(manyImages, _testImagePath, _outputPath);
-            SetupMockUIComponents(photoMosaic);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -198,7 +186,6 @@ namespace ThreadedMosaic.Tests
             // Arrange
             var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
             photoMosaic.SetPixelSize(5, 5);
-            SetupMockUIComponents(photoMosaic);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -210,7 +197,6 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
-            SetupMockUIComponents(photoMosaic);
 
             // Act & Assert
             Action firstCall = () => photoMosaic.CreatePhotoMosaic();
@@ -242,7 +228,6 @@ namespace ThreadedMosaic.Tests
             // Arrange
             var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
             photoMosaic.SetPixelSize(80, 80);
-            SetupMockUIComponents(photoMosaic);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();

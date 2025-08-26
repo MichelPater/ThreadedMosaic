@@ -63,10 +63,13 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ColorMosaicTests.cs" />
+    <Compile Include="ErrorHandlingTests.cs" />
     <Compile Include="HueMosaicTests.cs" />
+    <Compile Include="ImageProcessingTests.cs" />
     <Compile Include="LoadedImageTests.cs" />
     <Compile Include="MosaicTests.cs" />
     <Compile Include="PhotoMosaicTests.cs" />
+    <Compile Include="ProgressReporterTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

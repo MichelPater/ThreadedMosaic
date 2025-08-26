@@ -78,8 +78,11 @@
     </ApplicationDefinition>
     <Compile Include="Mosaic\ColorMosaic.cs" />
     <Compile Include="Mosaic\HueMosaic.cs" />
+    <Compile Include="Mosaic\IProgressReporter.cs" />
     <Compile Include="Mosaic\LoadedImage.cs" />
+    <Compile Include="Mosaic\NullProgressReporter.cs" />
     <Compile Include="Mosaic\PhotoMosaic.cs" />
+    <Compile Include="Mosaic\WpfProgressReporter.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

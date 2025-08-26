@@ -2,7 +2,6 @@ using System;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Windows.Controls;
 using FluentAssertions;
 using ThreadedMosaic.Mosaic;
 using Xunit;
@@ -59,13 +58,6 @@ namespace ThreadedMosaic.Tests
             }
         }
 
-        private void SetupMockUIComponents(ThreadedMosaic.Mosaic.Mosaic mosaic)
-        {
-            // Create mock UI components to prevent null reference exceptions
-            var mockProgressBar = new ProgressBar();
-            var mockLabel = new Label();
-            mosaic.SetProgressBar(mockProgressBar, mockLabel);
-        }
 
         [Fact]
         public void Constructor_Should_Initialize_With_Valid_Parameters()
@@ -106,7 +98,6 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
-            SetupMockUIComponents(colorMosaic);
 
             // Act & Assert
             Action act = () => colorMosaic.CreateColorMosaic();
@@ -136,7 +127,6 @@ namespace ThreadedMosaic.Tests
             // Arrange
             var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
             colorMosaic.SetPixelSize(5, 5);
-            SetupMockUIComponents(colorMosaic);
 
             // Act & Assert
             Action act = () => colorMosaic.CreateColorMosaic();
@@ -149,7 +139,6 @@ namespace ThreadedMosaic.Tests
             // Arrange
             var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
             colorMosaic.SetPixelSize(80, 80);
-            SetupMockUIComponents(colorMosaic);
 
             // Act & Assert
             Action act = () => colorMosaic.CreateColorMosaic();
@@ -177,7 +166,6 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
-            SetupMockUIComponents(colorMosaic);
 
             // Act & Assert
             Action firstCall = () => colorMosaic.CreateColorMosaic();

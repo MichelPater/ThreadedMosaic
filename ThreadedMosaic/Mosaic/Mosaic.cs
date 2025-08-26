@@ -61,18 +61,6 @@ namespace ThreadedMosaic.Mosaic
         }
 
         /// <summary>
-        ///     Saves the image to the disk
-        /// </summary>
-        /// <param name="imageToSave"></param>
-        protected void SaveImage(Bitmap imageToSave)
-        {
-            SetProgressLabelText("Saving image");
-            imageToSave.Save(OutputFilelocation, ImageFormat.Jpeg);
-            OpenImageFile(OutputFilelocation);
-            SetProgressLabelText("Done");
-        }
-
-        /// <summary>
         ///     Loads a bitmap from a filelocation
         /// </summary>
         /// <param name="filePath"></param>

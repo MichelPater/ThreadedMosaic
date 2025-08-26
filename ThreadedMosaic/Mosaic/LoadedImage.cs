@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Drawing;
 
-namespace ThreadedMosaic
+namespace ThreadedMosaic.Mosaic
 {
     /// <summary>
     ///     Represents an Image loaded into memory

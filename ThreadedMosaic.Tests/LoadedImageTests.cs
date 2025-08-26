@@ -1,6 +1,7 @@
 using System.Drawing;
 using FluentAssertions;
 using ThreadedMosaic;
+using ThreadedMosaic.Mosaic;
 using Xunit;
 
 namespace ThreadedMosaic.Tests

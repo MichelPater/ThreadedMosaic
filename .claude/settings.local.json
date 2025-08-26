@@ -4,7 +4,9 @@
       "Bash(dotnet build)",
       "Bash(msbuild:*)",
       "Bash(dotnet build:*)",
-      "Bash(where msbuild)"
+      "Bash(where msbuild)",
+      "Bash(dotnet test:*)",
+      "Bash(\"C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\MSBuild.exe\" \"C:\\Users\\mwpat\\Documents\\Repositories\\Charfield\\ThreadedMosaic\\ThreadedMosaic.sln\")"
     ],
     "deny": []
   }

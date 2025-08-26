@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Windows.Controls;
 using FluentAssertions;
 using ThreadedMosaic.Mosaic;
 using Xunit;
@@ -55,7 +56,7 @@ namespace ThreadedMosaic.Tests
             return base.CreateSizeAppropriateRectangle(currentXCoordinate, currentYCoordinate, tileColors, sourceBitmapWidth, sourceBitmapHeight);
         }
 
-        public new Image ResizeImage(Image imgToResize, Size size)
+        public new System.Drawing.Image ResizeImage(System.Drawing.Image imgToResize, Size size)
         {
             return base.ResizeImage(imgToResize, size);
         }
@@ -75,10 +76,28 @@ namespace ThreadedMosaic.Tests
 
         public void Dispose()
         {
-            if (File.Exists(_testImagePath))
-                File.Delete(_testImagePath);
-            if (File.Exists(_outputPath))
-                File.Delete(_outputPath);
+            // Force garbage collection to release any bitmap resources
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            
+            // Retry file deletion with a short delay
+            for (int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    if (File.Exists(_testImagePath))
+                        File.Delete(_testImagePath);
+                    if (File.Exists(_outputPath))
+                        File.Delete(_outputPath);
+                    break;
+                }
+                catch (IOException)
+                {
+                    if (i == 2) throw; // Re-throw on final attempt
+                    System.Threading.Thread.Sleep(100); // Wait 100ms before retry
+                }
+            }
         }
 
         private void CreateTestImage(string path)
@@ -235,7 +254,7 @@ namespace ThreadedMosaic.Tests
                 var newSize = new Size(50, 50);
 
                 // Act
-                using (var resizedImage = mosaic.ResizeImage(originalImage, newSize))
+                using (var resizedImage = (System.Drawing.Image)mosaic.ResizeImage(originalImage, newSize))
                 {
                     // Assert
                     resizedImage.Width.Should().Be(50);

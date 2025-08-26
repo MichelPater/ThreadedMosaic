@@ -63,7 +63,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_Should_Initialize_With_Valid_Parameters()
         {
             // Arrange & Act
-            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Assert
             colorMosaic.Should().NotBeNull();
@@ -78,7 +78,7 @@ namespace ThreadedMosaic.Tests
             var invalidPath = @"C:\nonexistent\file.jpg";
 
             // Act & Assert
-            Action act = () => new ColorMosaic(invalidPath, _outputPath);
+            Action act = () => new ColorMosaic(invalidPath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().Throw<Exception>();
         }
 
@@ -86,10 +86,10 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Null_Parameters_Should_Throw_Exception()
         {
             // Arrange, Act & Assert
-            Action actWithNullMaster = () => new ColorMosaic(null, _outputPath);
+            Action actWithNullMaster = () => new ColorMosaic(null, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             actWithNullMaster.Should().Throw<Exception>();
 
-            Action actWithNullOutput = () => new ColorMosaic(_testImagePath, null);
+            Action actWithNullOutput = () => new ColorMosaic(_testImagePath, null, NullProgressReporter.Instance, NullFileOperations.Instance);
             actWithNullOutput.Should().NotThrow(); // Output path is just stored, not validated immediately
         }
 
@@ -97,7 +97,7 @@ namespace ThreadedMosaic.Tests
         public void CreateColorMosaic_Should_Complete_Without_Exception()
         {
             // Arrange
-            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => colorMosaic.CreateColorMosaic();
@@ -111,7 +111,7 @@ namespace ThreadedMosaic.Tests
         public void SetPixelSize_Should_Update_Tile_Dimensions(int width, int height)
         {
             // Arrange
-            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act
             colorMosaic.SetPixelSize(width, height);
@@ -125,7 +125,7 @@ namespace ThreadedMosaic.Tests
         public void CreateColorMosaic_With_Small_Tile_Size_Should_Work()
         {
             // Arrange
-            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             colorMosaic.SetPixelSize(5, 5);
 
             // Act & Assert
@@ -137,7 +137,7 @@ namespace ThreadedMosaic.Tests
         public void CreateColorMosaic_With_Large_Tile_Size_Should_Work()
         {
             // Arrange
-            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             colorMosaic.SetPixelSize(80, 80);
 
             // Act & Assert
@@ -151,7 +151,7 @@ namespace ThreadedMosaic.Tests
         public void SetPixelSize_With_Edge_Cases_Should_Work(int width, int height)
         {
             // Arrange
-            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act
             colorMosaic.SetPixelSize(width, height);
@@ -165,7 +165,7 @@ namespace ThreadedMosaic.Tests
         public void Multiple_CreateColorMosaic_Calls_Should_Work()
         {
             // Arrange
-            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action firstCall = () => colorMosaic.CreateColorMosaic();

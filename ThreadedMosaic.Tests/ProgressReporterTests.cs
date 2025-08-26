@@ -106,7 +106,7 @@ namespace ThreadedMosaic.Tests
             var testReporter = new TestProgressReporter();
             using (var tempFile = new TemporaryImageFile())
             {
-                var colorMosaic = new ColorMosaic(tempFile.Path, tempFile.Path, testReporter);
+                var colorMosaic = new ColorMosaic(tempFile.Path, tempFile.Path, testReporter, NullFileOperations.Instance);
 
                 // Act
                 colorMosaic.CreateColorMosaic();

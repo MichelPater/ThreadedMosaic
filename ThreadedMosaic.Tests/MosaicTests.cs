@@ -12,12 +12,12 @@ namespace ThreadedMosaic.Tests
     public class TestMosaic : ThreadedMosaic.Mosaic.Mosaic
     {
         public TestMosaic(string masterFileLocation, string outputFileLocation) 
-            : base(masterFileLocation, outputFileLocation)
+            : base(masterFileLocation, outputFileLocation, NullProgressReporter.Instance, NullFileOperations.Instance)
         {
         }
 
         public TestMosaic(List<string> fileLocations, string masterFileLocation, string outputFileLocation) 
-            : base(fileLocations, masterFileLocation, outputFileLocation)
+            : base(fileLocations, masterFileLocation, outputFileLocation, NullProgressReporter.Instance, NullFileOperations.Instance)
         {
         }
 

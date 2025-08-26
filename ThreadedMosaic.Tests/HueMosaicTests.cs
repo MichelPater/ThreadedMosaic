@@ -73,7 +73,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_Should_Initialize_With_Valid_Parameters()
         {
             // Arrange & Act
-            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Assert
             hueMosaic.Should().NotBeNull();
@@ -85,7 +85,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Null_FileLocations_Should_Throw_Exception()
         {
             // Arrange, Act & Assert
-            Action act = () => new HueMosaic(null, _testImagePath, _outputPath);
+            Action act = () => new HueMosaic(null, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow(); // FileLocations is just stored, not validated immediately
         }
 
@@ -96,7 +96,7 @@ namespace ThreadedMosaic.Tests
             var emptyFileLocations = new List<string>();
 
             // Act & Assert
-            Action act = () => new HueMosaic(emptyFileLocations, _testImagePath, _outputPath);
+            Action act = () => new HueMosaic(emptyFileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow();
         }
 
@@ -107,7 +107,7 @@ namespace ThreadedMosaic.Tests
             var invalidPath = @"C:\nonexistent\file.jpg";
 
             // Act & Assert
-            Action act = () => new HueMosaic(_fileLocations, invalidPath, _outputPath);
+            Action act = () => new HueMosaic(_fileLocations, invalidPath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().Throw<Exception>();
         }
 
@@ -115,7 +115,7 @@ namespace ThreadedMosaic.Tests
         public void CreateColorMosaic_Should_Complete_Without_Exception()
         {
             // Arrange
-            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => hueMosaic.CreateColorMosaic();
@@ -127,7 +127,7 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var emptyFileLocations = new List<string>();
-            var hueMosaic = new HueMosaic(emptyFileLocations, _testImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(emptyFileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => hueMosaic.CreateColorMosaic();
@@ -141,7 +141,7 @@ namespace ThreadedMosaic.Tests
         public void SetPixelSize_Should_Update_Tile_Dimensions(int width, int height)
         {
             // Arrange
-            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act
             hueMosaic.SetPixelSize(width, height);
@@ -156,7 +156,7 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var singleImageList = new List<string> { _testImagePath };
-            var hueMosaic = new HueMosaic(singleImageList, _testImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(singleImageList, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => hueMosaic.CreateColorMosaic();
@@ -173,7 +173,7 @@ namespace ThreadedMosaic.Tests
                 manyImages.Add(_testImagePath);
                 manyImages.Add(_testImagePath2);
             }
-            var hueMosaic = new HueMosaic(manyImages, _testImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(manyImages, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => hueMosaic.CreateColorMosaic();
@@ -184,7 +184,7 @@ namespace ThreadedMosaic.Tests
         public void CreateColorMosaic_With_Small_Tile_Size_Should_Work()
         {
             // Arrange
-            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             hueMosaic.SetPixelSize(5, 5);
 
             // Act & Assert
@@ -196,7 +196,7 @@ namespace ThreadedMosaic.Tests
         public void Multiple_CreateColorMosaic_Calls_Should_Work()
         {
             // Arrange
-            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action firstCall = () => hueMosaic.CreateColorMosaic();
@@ -210,7 +210,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Null_MasterFileLocation_Should_Throw()
         {
             // Arrange, Act & Assert
-            Action act = () => new HueMosaic(_fileLocations, null, _outputPath);
+            Action act = () => new HueMosaic(_fileLocations, null, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().Throw<Exception>();
         }
 
@@ -218,7 +218,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Null_OutputFileLocation_Should_Throw()
         {
             // Arrange, Act & Assert
-            Action act = () => new HueMosaic(_fileLocations, _testImagePath, null);
+            Action act = () => new HueMosaic(_fileLocations, _testImagePath, null, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow(); // Output path is just stored, not validated immediately
         }
     }

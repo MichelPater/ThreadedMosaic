@@ -64,6 +64,7 @@
   <ItemGroup>
     <Compile Include="ColorMosaicTests.cs" />
     <Compile Include="ErrorHandlingTests.cs" />
+    <Compile Include="FileOperationsTests.cs" />
     <Compile Include="HueMosaicTests.cs" />
     <Compile Include="ImageProcessingTests.cs" />
     <Compile Include="LoadedImageTests.cs" />

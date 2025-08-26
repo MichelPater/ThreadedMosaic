@@ -136,7 +136,7 @@ namespace ThreadedMosaic.Tests
         public void Mosaic_With_Very_Small_Tile_Size_Should_Work()
         {
             // Arrange
-            var colorMosaic = new ColorMosaic(_validImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_validImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             colorMosaic.SetPixelSize(1, 1);
 
             // Act & Assert
@@ -148,7 +148,7 @@ namespace ThreadedMosaic.Tests
         public void Mosaic_With_Very_Large_Tile_Size_Should_Work()
         {
             // Arrange
-            var colorMosaic = new ColorMosaic(_validImagePath, _outputPath);
+            var colorMosaic = new ColorMosaic(_validImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             colorMosaic.SetPixelSize(1000, 1000); // Larger than the test image
 
             // Act & Assert
@@ -181,8 +181,8 @@ namespace ThreadedMosaic.Tests
             var fileList = new List<string> { _validImagePath };
             
             // Create multiple mosaics that might access the same file
-            var mosaic1 = new HueMosaic(fileList, _validImagePath, _outputPath + "1");
-            var mosaic2 = new PhotoMosaic(fileList, _validImagePath, _outputPath + "2");
+            var mosaic1 = new HueMosaic(fileList, _validImagePath, _outputPath + "1", NullProgressReporter.Instance, NullFileOperations.Instance);
+            var mosaic2 = new PhotoMosaic(fileList, _validImagePath, _outputPath + "2", NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert - Should handle concurrent access gracefully
             Action act1 = () => mosaic1.CreateColorMosaic();
@@ -197,7 +197,7 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var testReporter = new TestProgressReporter();
-            var colorMosaic = new ColorMosaic(_validImagePath, _outputPath, testReporter);
+            var colorMosaic = new ColorMosaic(_validImagePath, _outputPath, testReporter, NullFileOperations.Instance);
 
             // Act - Call multiple times
             colorMosaic.CreateColorMosaic();

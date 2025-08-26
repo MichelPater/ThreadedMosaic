@@ -25,6 +25,11 @@ namespace ThreadedMosaic.Mosaic
         {
         }
 
+        public PhotoMosaic(List<String> fileLocations, String masterFileLocation, String outputFileLocation, IProgressReporter progressReporter, IFileOperations fileOperations)
+            : base(fileLocations, masterFileLocation, outputFileLocation, progressReporter, fileOperations)
+        {
+        }
+
         public void CreatePhotoMosaic()
         {
             LoadImages();

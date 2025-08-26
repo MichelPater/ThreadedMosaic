@@ -18,6 +18,7 @@ namespace ThreadedMosaic.Mosaic
 
         protected long Current;
         protected IProgressReporter ProgressReporter;
+        protected IFileOperations FileOperations;
         public int XPixelCount = 40;
         public int YPixelCount = 40;
 
@@ -27,11 +28,17 @@ namespace ThreadedMosaic.Mosaic
         }
 
         public Mosaic(String masterFileLocation, String outputFilelocation, IProgressReporter progressReporter)
+            : this(masterFileLocation, outputFilelocation, progressReporter, DefaultFileOperations.Instance)
+        {
+        }
+
+        public Mosaic(String masterFileLocation, String outputFilelocation, IProgressReporter progressReporter, IFileOperations fileOperations)
         {
             MasterFileLocation = masterFileLocation;
             MasterBitmap = GetBitmapFromFileName(masterFileLocation);
             OutputFilelocation = outputFilelocation;
             ProgressReporter = progressReporter ?? NullProgressReporter.Instance;
+            FileOperations = fileOperations ?? DefaultFileOperations.Instance;
         }
 
         public Mosaic(List<String> fileLocations, String masterFileLocation, String outputFilelocation)
@@ -40,12 +47,18 @@ namespace ThreadedMosaic.Mosaic
         }
 
         public Mosaic(List<String> fileLocations, String masterFileLocation, String outputFilelocation, IProgressReporter progressReporter)
+            : this(fileLocations, masterFileLocation, outputFilelocation, progressReporter, DefaultFileOperations.Instance)
+        {
+        }
+
+        public Mosaic(List<String> fileLocations, String masterFileLocation, String outputFilelocation, IProgressReporter progressReporter, IFileOperations fileOperations)
         {
             FileLocations = fileLocations;
             MasterFileLocation = masterFileLocation;
             MasterBitmap = GetBitmapFromFileName(masterFileLocation);
             OutputFilelocation = outputFilelocation;
             ProgressReporter = progressReporter ?? NullProgressReporter.Instance;
+            FileOperations = fileOperations ?? DefaultFileOperations.Instance;
         }
 
         /// <summary>
@@ -75,7 +88,7 @@ namespace ThreadedMosaic.Mosaic
         {
             ProgressReporter.UpdateStatus("Saving image");
             imageToSave.Save(OutputFilelocation, ImageFormat.Jpeg);
-            OpenImageFile(OutputFilelocation);
+            FileOperations.OpenImageFile(OutputFilelocation);
             ProgressReporter.UpdateStatus("Done");
         }
 
@@ -256,10 +269,6 @@ namespace ThreadedMosaic.Mosaic
             return new Rectangle(xTopCoordinate, yTopCoordinate, tempXPixelCount, tempYPixelCount);
         }
 
-        protected void OpenImageFile(String imageLocation)
-        {
-            Process.Start(imageLocation);
-        }
 
         protected void SetProgressBarMaximum(int count)
         {

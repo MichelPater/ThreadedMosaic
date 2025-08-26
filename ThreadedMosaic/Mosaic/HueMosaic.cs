@@ -22,6 +22,11 @@ namespace ThreadedMosaic.Mosaic
         {
         }
 
+        public HueMosaic(List<String> fileLocations, String masterFileLocation, String outputFileLocation, IProgressReporter progressReporter, IFileOperations fileOperations)
+            : base(fileLocations, masterFileLocation, outputFileLocation, progressReporter, fileOperations)
+        {
+        }
+
         public void CreateColorMosaic()
         {
             LoadImages();

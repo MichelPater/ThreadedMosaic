@@ -73,7 +73,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_Should_Initialize_With_Valid_Parameters()
         {
             // Arrange & Act
-            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Assert
             photoMosaic.Should().NotBeNull();
@@ -85,7 +85,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Null_FileLocations_Should_Throw_Exception()
         {
             // Arrange, Act & Assert
-            Action act = () => new PhotoMosaic(null, _testImagePath, _outputPath);
+            Action act = () => new PhotoMosaic(null, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow(); // FileLocations is just stored, not validated immediately
         }
 
@@ -96,7 +96,7 @@ namespace ThreadedMosaic.Tests
             var emptyFileLocations = new List<string>();
 
             // Act & Assert
-            Action act = () => new PhotoMosaic(emptyFileLocations, _testImagePath, _outputPath);
+            Action act = () => new PhotoMosaic(emptyFileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow();
         }
 
@@ -107,7 +107,7 @@ namespace ThreadedMosaic.Tests
             var invalidPath = @"C:\nonexistent\file.jpg";
 
             // Act & Assert
-            Action act = () => new PhotoMosaic(_fileLocations, invalidPath, _outputPath);
+            Action act = () => new PhotoMosaic(_fileLocations, invalidPath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().Throw<Exception>();
         }
 
@@ -115,7 +115,7 @@ namespace ThreadedMosaic.Tests
         public void CreatePhotoMosaic_Should_Complete_Without_Exception()
         {
             // Arrange
-            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -127,7 +127,7 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var emptyFileLocations = new List<string>();
-            var photoMosaic = new PhotoMosaic(emptyFileLocations, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(emptyFileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -141,7 +141,7 @@ namespace ThreadedMosaic.Tests
         public void SetPixelSize_Should_Update_Tile_Dimensions(int width, int height)
         {
             // Arrange
-            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act
             photoMosaic.SetPixelSize(width, height);
@@ -156,7 +156,7 @@ namespace ThreadedMosaic.Tests
         {
             // Arrange
             var singleImageList = new List<string> { _testImagePath };
-            var photoMosaic = new PhotoMosaic(singleImageList, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(singleImageList, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -173,7 +173,7 @@ namespace ThreadedMosaic.Tests
                 manyImages.Add(_testImagePath);
                 manyImages.Add(_testImagePath2);
             }
-            var photoMosaic = new PhotoMosaic(manyImages, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(manyImages, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -184,7 +184,7 @@ namespace ThreadedMosaic.Tests
         public void CreatePhotoMosaic_With_Small_Tile_Size_Should_Work()
         {
             // Arrange
-            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             photoMosaic.SetPixelSize(5, 5);
 
             // Act & Assert
@@ -196,7 +196,7 @@ namespace ThreadedMosaic.Tests
         public void Multiple_CreatePhotoMosaic_Calls_Should_Work()
         {
             // Arrange
-            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action firstCall = () => photoMosaic.CreatePhotoMosaic();
@@ -210,7 +210,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Null_MasterFileLocation_Should_Throw()
         {
             // Arrange, Act & Assert
-            Action act = () => new PhotoMosaic(_fileLocations, null, _outputPath);
+            Action act = () => new PhotoMosaic(_fileLocations, null, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().Throw<Exception>();
         }
 
@@ -218,7 +218,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Null_OutputFileLocation_Should_Throw()
         {
             // Arrange, Act & Assert
-            Action act = () => new PhotoMosaic(_fileLocations, _testImagePath, null);
+            Action act = () => new PhotoMosaic(_fileLocations, _testImagePath, null, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow(); // Output path is just stored, not validated immediately
         }
 
@@ -226,7 +226,7 @@ namespace ThreadedMosaic.Tests
         public void CreatePhotoMosaic_With_Large_Tile_Size_Should_Work()
         {
             // Arrange
-            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             photoMosaic.SetPixelSize(80, 80);
 
             // Act & Assert
@@ -240,7 +240,7 @@ namespace ThreadedMosaic.Tests
         public void SetPixelSize_With_Edge_Cases_Should_Work(int width, int height)
         {
             // Arrange
-            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act
             photoMosaic.SetPixelSize(width, height);

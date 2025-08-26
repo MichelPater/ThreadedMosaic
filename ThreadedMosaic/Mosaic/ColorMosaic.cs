@@ -15,6 +15,11 @@ namespace ThreadedMosaic.Mosaic
         {
         }
 
+        public ColorMosaic(String masterFileLocation, String outputFileLocation, IProgressReporter progressReporter, IFileOperations fileOperations)
+            : base(masterFileLocation, outputFileLocation, progressReporter, fileOperations)
+        {
+        }
+
         /// <summary>
         /// Creates the ColorMosaic
         /// </summary>

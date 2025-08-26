@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ThreadedMosaic.Mosaic
 {
-    internal class HueMosaic : Mosaic
+    public class HueMosaic : Mosaic
     {
         private readonly ConcurrentBag<LoadedImage> _concurrentBag = new ConcurrentBag<LoadedImage>();
 

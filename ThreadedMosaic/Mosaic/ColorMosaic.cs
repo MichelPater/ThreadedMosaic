@@ -3,7 +3,7 @@ using System.Drawing;
 
 namespace ThreadedMosaic.Mosaic
 {
-    internal class ColorMosaic : Mosaic
+    public class ColorMosaic : Mosaic
     {
         public ColorMosaic(String masterFileLocation, String outputFileLocation)
             : base(masterFileLocation, outputFileLocation)

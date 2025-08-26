@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace ThreadedMosaic.Mosaic
 {
-    class PhotoMosaic : Mosaic
+    public class PhotoMosaic : Mosaic
     {
         private ConcurrentBag<LoadedImage> _concurrentBag = new ConcurrentBag<LoadedImage>();
         private ConcurrentBag<LoadedImage> _alreadySelectedImages = new ConcurrentBag<LoadedImage>();

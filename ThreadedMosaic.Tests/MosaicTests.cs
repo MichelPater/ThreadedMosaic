@@ -59,6 +59,11 @@ namespace ThreadedMosaic.Tests
         {
             return base.ResizeImage(imgToResize, size);
         }
+
+        public Color[,] CallGetColorTilesFromBitmap(Bitmap sourceBitmap)
+        {
+            return base.GetColorTilesFromBitmap(sourceBitmap);
+        }
     }
 
     public class MosaicTests : IDisposable

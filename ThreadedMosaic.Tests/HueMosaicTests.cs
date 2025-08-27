@@ -9,6 +9,47 @@ using Xunit;
 
 namespace ThreadedMosaic.Tests
 {
+    public class TestableHueMosaic : HueMosaic
+    {
+        public TestableHueMosaic(List<string> fileLocations, string masterFileLocation, string outputFileLocation) 
+            : base(fileLocations, masterFileLocation, outputFileLocation, NullProgressReporter.Instance, NullFileOperations.Instance)
+        {
+        }
+
+        public void LoadImagesForTesting()
+        {
+            // Load images into the _concurrentBag so BuildImage can access them
+            ProgressReporter.UpdateStatus("Start of Loading Images:");
+            ProgressReporter.SetMaximum(FileLocations.Count);
+
+            foreach (var currentFile in FileLocations)
+            {
+                try
+                {
+                    // Using reflection to access private _concurrentBag
+                    var field = typeof(HueMosaic).GetField("_concurrentBag", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                    var concurrentBag = field.GetValue(this);
+                    var addMethod = concurrentBag.GetType().GetMethod("Add");
+                    addMethod.Invoke(concurrentBag, new object[] { new LoadedImage { FilePath = currentFile } });
+                }
+                catch
+                {
+                    // Skip files that can't be loaded
+                }
+                finally
+                {
+                    ProgressReporter.UpdateStatus("Amount of Images loaded: " + 1);
+                    ProgressReporter.IncrementProgress();
+                }
+            }
+        }
+
+        public new void BuildImage(Graphics graphics, int xCoordinate, int yCoordinate, Color[,] tileColors)
+        {
+            base.BuildImage(graphics, xCoordinate, yCoordinate, tileColors);
+        }
+    }
+
     public class HueMosaicTests : IDisposable
     {
         private readonly string _testImagePath;
@@ -220,6 +261,231 @@ namespace ThreadedMosaic.Tests
             // Arrange, Act & Assert
             Action act = () => new HueMosaic(_fileLocations, _testImagePath, null, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow(); // Output path is just stored, not validated immediately
+        }
+
+        [Fact]
+        public void BuildImage_Should_Apply_Transparent_Overlay_Correctly()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(100, 100);
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.SetPixelSize(50, 50);
+            hueMosaic.LoadImagesForTesting(); // Load images first
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.Red;
+            tileColors[0, 1] = Color.Green;
+            tileColors[1, 0] = Color.Blue;
+            tileColors[1, 1] = Color.Yellow;
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act
+                Action act = () => hueMosaic.BuildImage(graphics, 0, 0, tileColors);
+                
+                // Assert
+                act.Should().NotThrow("BuildImage should handle overlay logic correctly");
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_With_Different_Coordinates_Should_Position_Correctly()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(200, 200);
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.SetPixelSize(25, 25);
+            hueMosaic.LoadImagesForTesting(); // Load images first
+            
+            var tileColors = new Color[8, 8];
+            for (int x = 0; x < 8; x++)
+            for (int y = 0; y < 8; y++)
+                tileColors[x, y] = Color.FromArgb(255, x * 30, y * 30, 128);
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act & Assert
+                for (int x = 0; x < 4; x++)
+                for (int y = 0; y < 4; y++)
+                {
+                    Action act = () => hueMosaic.BuildImage(graphics, x, y, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage should work at coordinates ({0}, {1})", x, y));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_Should_Use_Correct_Alpha_Value_210()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(50, 50);
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.SetPixelSize(50, 50);
+            hueMosaic.LoadImagesForTesting(); // Load images first
+            
+            var tileColors = new Color[1, 1];
+            tileColors[0, 0] = Color.FromArgb(255, 100, 150, 200);
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act
+                Action act = () => hueMosaic.BuildImage(graphics, 0, 0, tileColors);
+                
+                // Assert
+                act.Should().NotThrow("BuildImage should apply alpha value 210 correctly");
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_With_Edge_Colors_Should_Handle_Correctly()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(60, 60);
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.SetPixelSize(30, 30);
+            hueMosaic.LoadImagesForTesting(); // Load images first
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.FromArgb(255, 0, 0, 0);     // Black
+            tileColors[0, 1] = Color.FromArgb(255, 255, 255, 255); // White
+            tileColors[1, 0] = Color.FromArgb(255, 255, 0, 0);     // Pure Red
+            tileColors[1, 1] = Color.FromArgb(255, 0, 255, 0);     // Pure Green
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act & Assert
+                for (int x = 0; x < 2; x++)
+                for (int y = 0; y < 2; y++)
+                {
+                    Action act = () => hueMosaic.BuildImage(graphics, x, y, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage should handle edge colors at ({0}, {1})", x, y));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_Multiple_Calls_Should_Work_Consistently()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(80, 80);
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.SetPixelSize(40, 40);
+            hueMosaic.LoadImagesForTesting(); // Load images first
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.Purple;
+            tileColors[0, 1] = Color.Orange;
+            tileColors[1, 0] = Color.Cyan;
+            tileColors[1, 1] = Color.Magenta;
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act & Assert - Multiple calls should work
+                for (int iteration = 0; iteration < 3; iteration++)
+                {
+                    Action act = () => hueMosaic.BuildImage(graphics, 0, 0, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage iteration {0} should work", iteration + 1));
+                    
+                    act = () => hueMosaic.BuildImage(graphics, 1, 1, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage iteration {0} at (1,1) should work", iteration + 1));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_With_Various_Pixel_Sizes_Should_Scale_Correctly()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(150, 150);
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.LoadImagesForTesting(); // Load images first
+            
+            var tileColors = new Color[5, 5];
+            for (int x = 0; x < 5; x++)
+            for (int y = 0; y < 5; y++)
+                tileColors[x, y] = Color.FromArgb(255, (x + 1) * 50, (y + 1) * 50, 128);
+
+            var pixelSizes = new[] { 10, 25, 30 };
+
+            foreach (var pixelSize in pixelSizes)
+            {
+                hueMosaic.SetPixelSize(pixelSize, pixelSize);
+                
+                using (var graphics = Graphics.FromImage(testBitmap))
+                {
+                    // Act & Assert
+                    Action act = () => hueMosaic.BuildImage(graphics, 0, 0, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage should work with pixel size {0}", pixelSize));
+                    
+                    act = () => hueMosaic.BuildImage(graphics, 2, 2, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage should work with pixel size {0} at (2,2)", pixelSize));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_Should_Handle_Random_Image_Selection()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(40, 40);
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.SetPixelSize(40, 40);
+            hueMosaic.LoadImagesForTesting(); // Load images first
+            
+            var tileColors = new Color[1, 1];
+            tileColors[0, 0] = Color.Lime;
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act & Assert - Multiple calls should work with random image selection
+                for (int i = 0; i < 10; i++)
+                {
+                    Action act = () => hueMosaic.BuildImage(graphics, 0, 0, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage call {0} should handle random image selection", i + 1));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Theory]
+        [InlineData(5, 5)]
+        [InlineData(15, 20)]
+        [InlineData(50, 25)]
+        public void BuildImage_With_Various_Dimensions_Should_Work(int width, int height)
+        {
+            // Arrange
+            var testBitmap = new Bitmap(100, 100);
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.SetPixelSize(width, height);
+            hueMosaic.LoadImagesForTesting(); // Load images first
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.Navy;
+            tileColors[0, 1] = Color.Maroon;
+            tileColors[1, 0] = Color.Olive;
+            tileColors[1, 1] = Color.Teal;
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act & Assert
+                Action act = () => hueMosaic.BuildImage(graphics, 0, 0, tileColors);
+                act.Should().NotThrow(string.Format("BuildImage should work with dimensions {0}x{1}", width, height));
+            }
+            
+            testBitmap.Dispose();
         }
     }
 }

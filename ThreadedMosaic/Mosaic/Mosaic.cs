@@ -175,7 +175,7 @@ namespace ThreadedMosaic.Mosaic
                 var avgR = (int) (totals[2]/count);
                 var avgG = (int) (totals[1]/count);
                 var avgB = (int) (totals[0]/count);
-                bitmap.Dispose();
+                bitmap.UnlockBits(srcData);
                 return Color.FromArgb(avgR, avgG, avgB);
             }
                 //Catch any error and return an empty Color

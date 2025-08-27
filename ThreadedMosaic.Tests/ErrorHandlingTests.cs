@@ -58,7 +58,7 @@ namespace ThreadedMosaic.Tests
             var nonExistentFile = @"C:\NonExistent\Path\image.jpg";
 
             // Act & Assert
-            Action act = () => new ColorMosaic(nonExistentFile, _outputPath);
+            Action act = () => new ColorMosaic(nonExistentFile, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().Throw<Exception>();
         }
 
@@ -66,7 +66,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Null_MasterFile_Should_Throw_Exception()
         {
             // Act & Assert
-            Action act = () => new ColorMosaic(null, _outputPath);
+            Action act = () => new ColorMosaic(null, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().Throw<Exception>();
         }
 
@@ -74,7 +74,7 @@ namespace ThreadedMosaic.Tests
         public void Constructor_With_Empty_String_MasterFile_Should_Throw_Exception()
         {
             // Act & Assert
-            Action act = () => new ColorMosaic(string.Empty, _outputPath);
+            Action act = () => new ColorMosaic(string.Empty, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().Throw<Exception>();
         }
 
@@ -82,7 +82,7 @@ namespace ThreadedMosaic.Tests
         public void HueMosaic_With_Null_FileLocations_Should_Handle_Gracefully()
         {
             // Act & Assert
-            Action act = () => new HueMosaic(null, _validImagePath, _outputPath);
+            Action act = () => new HueMosaic(null, _validImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow(); // Constructor should not throw
         }
 
@@ -93,7 +93,7 @@ namespace ThreadedMosaic.Tests
             var emptyList = new List<string>();
 
             // Act & Assert
-            Action act = () => new HueMosaic(emptyList, _validImagePath, _outputPath);
+            Action act = () => new HueMosaic(emptyList, _validImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
             act.Should().NotThrow();
         }
 
@@ -108,7 +108,7 @@ namespace ThreadedMosaic.Tests
                 @"C:\NonExistent\invalid2.jpg"
             };
 
-            var photoMosaic = new PhotoMosaic(mixedFileList, _validImagePath, _outputPath);
+            var photoMosaic = new PhotoMosaic(mixedFileList, _validImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert - Should not throw exception during creation
             Action act = () => photoMosaic.CreatePhotoMosaic();
@@ -125,7 +125,7 @@ namespace ThreadedMosaic.Tests
                 @"C:\NonExistent\invalid2.jpg"
             };
 
-            var hueMosaic = new HueMosaic(invalidFileList, _validImagePath, _outputPath);
+            var hueMosaic = new HueMosaic(invalidFileList, _validImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
             // Act & Assert
             Action act = () => hueMosaic.CreateColorMosaic();

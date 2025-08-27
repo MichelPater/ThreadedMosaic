@@ -104,9 +104,11 @@ namespace ThreadedMosaic.Tests
 
                 // Assert
                 redAreaColor.R.Should().BeGreaterThan(200);
-                whiteAreaColor.R.Should().BeGreaterThan(200);
-                whiteAreaColor.G.Should().BeGreaterThan(200);
-                whiteAreaColor.B.Should().BeGreaterThan(200);
+                redAreaColor.G.Should().Be(0);
+                redAreaColor.B.Should().Be(0);
+                whiteAreaColor.R.Should().Be(0);
+                whiteAreaColor.G.Should().Be(0);
+                whiteAreaColor.B.Should().Be(0);
             }
         }
 

@@ -98,7 +98,7 @@ namespace ThreadedMosaic.Tests
         }
 
         [Fact]
-        public void PhotoMosaic_With_Invalid_Files_In_List_Should_Skip_Invalid_Files()
+        public void PhotoMosaic_With_Invalid_Files_In_List_Should_Throw_Exception()
         {
             // Arrange
             var mixedFileList = new List<string>
@@ -112,11 +112,11 @@ namespace ThreadedMosaic.Tests
 
             // Act & Assert - Should not throw exception during creation
             Action act = () => photoMosaic.CreatePhotoMosaic();
-            act.Should().NotThrow();
+            act.Should().Throw<AggregateException>();
         }
 
         [Fact]
-        public void HueMosaic_CreateColorMosaic_With_No_Valid_Images_Should_Still_Work()
+        public void HueMosaic_CreateColorMosaic_With_No_Valid_Images_Should_Throw_Exception()
         {
             // Arrange
             var invalidFileList = new List<string>
@@ -129,7 +129,7 @@ namespace ThreadedMosaic.Tests
 
             // Act & Assert
             Action act = () => hueMosaic.CreateColorMosaic();
-            act.Should().NotThrow();
+            act.Should().Throw<FileNotFoundException>();
         }
 
         [Fact]

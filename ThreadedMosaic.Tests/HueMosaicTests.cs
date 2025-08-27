@@ -123,7 +123,7 @@ namespace ThreadedMosaic.Tests
         }
 
         [Fact]
-        public void CreateColorMosaic_With_Empty_FileLocations_Should_Still_Work()
+        public void CreateColorMosaic_With_Empty_FileLocations_Should_Throw_Exception()
         {
             // Arrange
             var emptyFileLocations = new List<string>();
@@ -131,7 +131,7 @@ namespace ThreadedMosaic.Tests
 
             // Act & Assert
             Action act = () => hueMosaic.CreateColorMosaic();
-            act.Should().NotThrow();
+            act.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Theory]

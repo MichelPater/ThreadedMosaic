@@ -58,6 +58,38 @@ namespace ThreadedMosaic.Mosaic
 
         }
 
+        public MosaicTileMetadata BuildImageWithMetadata(Graphics graphics, int xCoordinate, int yCoordinate, Color[,] tileColors)
+        {
+            var xLeftCoordinate = xCoordinate * XPixelCount;
+            var yTopCoordinate = yCoordinate * YPixelCount;
+            var targetColor = tileColors[xCoordinate, yCoordinate];
+
+            //Get and set the best fitting image
+            var selectedImageLoadedImage = GetClosestMatchingLoadedImage(targetColor);
+            Image photoImage = ResizeImage(GetClosestMatchingImage(targetColor), new Size(XPixelCount, YPixelCount));
+            graphics.DrawImage(photoImage, new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
+
+            //Adjust the color to beter fit the original design
+            Color transparentColor = Color.FromArgb(210, targetColor.R, targetColor.G, targetColor.B);
+            var colorBrush = new SolidBrush(transparentColor);
+            graphics.FillRectangle(colorBrush,
+              new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
+
+            //Dispose unnessacery objects
+            photoImage.Dispose();
+            colorBrush.Dispose();
+
+            return new MosaicTileMetadata
+            {
+                XCoordinate = xCoordinate,
+                YCoordinate = yCoordinate,
+                TargetColor = targetColor,
+                SelectedImagePath = selectedImageLoadedImage != null ? selectedImageLoadedImage.FilePath : string.Empty,
+                TransparencyOverlayColor = transparentColor,
+                TilePixelSize = new Size(XPixelCount, YPixelCount)
+            };
+        }
+
         private Image GetClosestMatchingImage(Color tileColor)
         {
             double closestDistance = double.MaxValue;
@@ -79,6 +111,26 @@ namespace ThreadedMosaic.Mosaic
             Image closestImage = Image.FromFile(filePath);
             GC.Collect();
             return closestImage;
+        }
+
+        private LoadedImage GetClosestMatchingLoadedImage(Color tileColor)
+        {
+            double closestDistance = double.MaxValue;
+            LoadedImage closestLoadedImage = null;
+
+            Parallel.ForEach(_concurrentBag, currentTile =>
+            {
+                double tempDistance = CompareColors(tileColor, currentTile.AverageColor);
+
+                if (tempDistance < closestDistance)
+                {
+                    closestDistance = tempDistance;
+                    closestLoadedImage = currentTile;
+                    _alreadySelectedImages.Add(currentTile);
+                }
+            });
+
+            return closestLoadedImage;
         }
 
         public double CompareColors(Color firstColor, Color secondColor)

@@ -191,7 +191,7 @@ namespace ThreadedMosaic.Mosaic
         /// <param name="imageWidth">The image width</param>
         /// <param name="imageHeight">The image Height</param>
         /// <returns></returns>
-        protected Color[,] InitializeColorTiles(int imageWidth, int imageHeight)
+        public Color[,] InitializeColorTiles(int imageWidth, int imageHeight)
         {
             ProgressReporter.UpdateStatus("Initializing Color Tiles");
             Color[,] tileColors;
@@ -233,7 +233,7 @@ namespace ThreadedMosaic.Mosaic
         /// <param name="sourceBitmapWidth">The source image width</param>
         /// <param name="sourceBitmapHeight">The source image height</param>
         /// <returns></returns>
-        protected Rectangle CreateSizeAppropriateRectangle(int currentXCoordinate, int currentYCoordinate,
+        public Rectangle CreateSizeAppropriateRectangle(int currentXCoordinate, int currentYCoordinate,
             Color[,] tileColors, int sourceBitmapWidth, int sourceBitmapHeight)
         {
             var xTopCoordinate = currentXCoordinate*XPixelCount;
@@ -285,7 +285,7 @@ namespace ThreadedMosaic.Mosaic
             ProgressReporter.UpdateStatus(text);
         }
 
-        protected Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
+        public Color[,] GetColorTilesFromBitmap(Bitmap sourceBitmap)
         {
             var tileColors = InitializeColorTiles(sourceBitmap.Width, sourceBitmap.Height);
             ProgressReporter.UpdateStatus("Calculating average of Tiles");

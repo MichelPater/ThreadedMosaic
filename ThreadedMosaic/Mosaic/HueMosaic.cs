@@ -50,13 +50,58 @@ namespace ThreadedMosaic.Mosaic
             photoImage.Dispose();
         }
 
+        public MosaicTileMetadata BuildImageWithMetadata(Graphics graphics, int xCoordinate, int yCoordinate, Color[,] tileColors, int seed)
+        {
+            var xLeftCoordinate = xCoordinate*XPixelCount;
+            var yTopCoordinate = yCoordinate*YPixelCount;
+            var targetColor = tileColors[xCoordinate, yCoordinate];
+
+            var transparentColor = Color.FromArgb(210, targetColor.R, targetColor.G, targetColor.B);
+            var colorBrush = new SolidBrush(transparentColor);
+
+            var selectedImagePath = string.Empty;
+            if (_concurrentBag.Count > 0)
+            {
+                var random = new Random(seed);
+                var number = random.Next(0, _concurrentBag.Count);
+                selectedImagePath = _concurrentBag.ToList()[number].FilePath;
+                var photoImage = ResizeImage(GetRandomImage(seed), new Size(XPixelCount, YPixelCount));
+                graphics.DrawImage(photoImage, new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
+                photoImage.Dispose();
+            }
+
+            graphics.FillRectangle(colorBrush,
+                new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
+            colorBrush.Dispose();
+
+            return new MosaicTileMetadata
+            {
+                XCoordinate = xCoordinate,
+                YCoordinate = yCoordinate,
+                TargetColor = targetColor,
+                SelectedImagePath = selectedImagePath,
+                TransparencyOverlayColor = transparentColor,
+                TilePixelSize = new Size(XPixelCount, YPixelCount)
+            };
+        }
+
         /// <summary>
         ///     Get a random image from the loaded images
         /// </summary>
         /// <returns></returns>
         private Image GetRandomImage()
         {
-            var random = new Random(DateTime.Now.Millisecond);
+            return GetRandomImage(DateTime.Now.Millisecond);
+        }
+
+        /// <summary>
+        ///     Get a random image from the loaded images with specific seed
+        /// </summary>
+        /// <param name="seed">Random seed for reproducible testing</param>
+        /// <returns></returns>
+        public Image GetRandomImage(int seed)
+        {
+            var random = new Random(seed);
 
             var number = random.Next(0, _concurrentBag.Count);
             var randomImage = Image.FromFile(_concurrentBag.ToList()[number].FilePath);

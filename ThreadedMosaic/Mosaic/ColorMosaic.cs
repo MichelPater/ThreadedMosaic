@@ -46,5 +46,29 @@ namespace ThreadedMosaic.Mosaic
                 new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
             IncrementProgressBar();
         }
+
+        public MosaicTileMetadata BuildImageWithMetadata(Graphics graphics, int xCoordinate, int yCoordinate, Color[,] tileColors)
+        {
+            var targetColor = tileColors[xCoordinate, yCoordinate];
+            var colorBrush = new SolidBrush(targetColor);
+
+            var xLeftCoordinate = xCoordinate*XPixelCount;
+            var yTopCoordinate = yCoordinate*YPixelCount;
+
+            graphics.FillRectangle(colorBrush,
+                new Rectangle(xLeftCoordinate, yTopCoordinate, XPixelCount, YPixelCount));
+            colorBrush.Dispose();
+            IncrementProgressBar();
+
+            return new MosaicTileMetadata
+            {
+                XCoordinate = xCoordinate,
+                YCoordinate = yCoordinate,
+                TargetColor = targetColor,
+                SelectedImagePath = null,
+                TransparencyOverlayColor = Color.Empty,
+                TilePixelSize = new Size(XPixelCount, YPixelCount)
+            };
+        }
     }
 }

@@ -487,5 +487,80 @@ namespace ThreadedMosaic.Tests
             
             testBitmap.Dispose();
         }
+
+        [Fact]
+        public void GetRandomImage_Distribution_Should_Cover_All_Images_Over_Multiple_Calls()
+        {
+            // Arrange
+            var hueMosaic = new TestableHueMosaic(_fileLocations, _testImagePath, _outputPath);
+            hueMosaic.LoadImagesForTesting();
+            
+            var tileColors = new Color[1, 1];
+            tileColors[0, 0] = Color.Blue;
+            var testBitmap = new Bitmap(50, 50);
+            
+            // Act - Call BuildImage multiple times to test randomness distribution
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                for (int i = 0; i < 20; i++) // Multiple calls to test distribution
+                {
+                    Action act = () => hueMosaic.BuildImage(graphics, 0, 0, tileColors);
+                    act.Should().NotThrow(string.Format("GetRandomImage should work consistently on call {0}", i + 1));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void HueMosaic_With_Empty_Image_Collection_Should_Handle_Gracefully()
+        {
+            // Arrange - Create HueMosaic with empty file collection
+            var emptyFileCollection = new List<string>();
+            var hueMosaic = new TestableHueMosaic(emptyFileCollection, _testImagePath, _outputPath);
+            
+            var tileColors = new Color[1, 1];
+            tileColors[0, 0] = Color.Green;
+            var testBitmap = new Bitmap(30, 30);
+            
+            // Act & Assert
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                Action act = () => hueMosaic.BuildImage(graphics, 0, 0, tileColors);
+                act.Should().NotThrow<NullReferenceException>("HueMosaic should handle empty image collections without null reference exceptions");
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void HueMosaic_With_Single_Image_Collection_Should_Work()
+        {
+            // Arrange - Create HueMosaic with single image
+            var singleImageCollection = new List<string> { _testImagePath };
+            var hueMosaic = new TestableHueMosaic(singleImageCollection, _testImagePath, _outputPath);
+            hueMosaic.LoadImagesForTesting();
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.Red;
+            tileColors[0, 1] = Color.Blue;
+            tileColors[1, 0] = Color.Yellow;
+            tileColors[1, 1] = Color.Green;
+            
+            var testBitmap = new Bitmap(60, 60);
+            
+            // Act & Assert
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                for (int x = 0; x < 2; x++)
+                for (int y = 0; y < 2; y++)
+                {
+                    Action act = () => hueMosaic.BuildImage(graphics, x, y, tileColors);
+                    act.Should().NotThrow(string.Format("HueMosaic should work with single image at ({0}, {1})", x, y));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
     }
 }

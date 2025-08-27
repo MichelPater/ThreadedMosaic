@@ -82,6 +82,7 @@
     <Compile Include="Mosaic\IFileOperations.cs" />
     <Compile Include="Mosaic\IProgressReporter.cs" />
     <Compile Include="Mosaic\LoadedImage.cs" />
+    <Compile Include="Mosaic\MosaicTileMetadata.cs" />
     <Compile Include="Mosaic\NullFileOperations.cs" />
     <Compile Include="Mosaic\NullProgressReporter.cs" />
     <Compile Include="Mosaic\PhotoMosaic.cs" />

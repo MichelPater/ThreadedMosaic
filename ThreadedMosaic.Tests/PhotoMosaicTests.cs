@@ -673,6 +673,30 @@ namespace ThreadedMosaic.Tests
             }
         }
 
+        [Fact]
+        public void GetClosestMatchingImage_With_Empty_Image_Collection_Should_Handle_Gracefully()
+        {
+            // Arrange
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            
+            // Clear the concurrent bag to simulate empty collection
+            var field = typeof(PhotoMosaic).GetField("_concurrentBag", BindingFlags.NonPublic | BindingFlags.Instance);
+            var concurrentBag = (ConcurrentBag<LoadedImage>)field.GetValue(photoMosaic);
+            
+            // Create a fresh empty bag
+            var emptyConcurrentBag = new ConcurrentBag<LoadedImage>();
+            field.SetValue(photoMosaic, emptyConcurrentBag);
+            
+            var targetColor = Color.Red;
+
+            // Act & Assert
+            Action act = () => photoMosaic.CallGetClosestMatchingImage(targetColor);
+            
+            // The method should handle empty collections gracefully
+            // Either return null, throw a specific exception, or have fallback behavior
+            act.Should().NotThrow<NullReferenceException>("GetClosestMatchingImage should handle empty collections without null reference exceptions");
+        }
+
         #endregion
     }
 }

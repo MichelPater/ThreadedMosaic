@@ -249,3 +249,6 @@ cmake-build-*/
 
 # IntelliJ
 out/
+
+.claude/*
+.claude/

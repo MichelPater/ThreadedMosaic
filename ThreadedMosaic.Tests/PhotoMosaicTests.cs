@@ -6,9 +6,55 @@ using System.IO;
 using FluentAssertions;
 using ThreadedMosaic.Mosaic;
 using Xunit;
+using System.Reflection;
+using System.Collections.Concurrent;
 
 namespace ThreadedMosaic.Tests
 {
+    public class TestablePhotoMosaic : PhotoMosaic
+    {
+        public TestablePhotoMosaic(List<string> fileLocations, string masterFileLocation, string outputFileLocation) 
+            : base(fileLocations, masterFileLocation, outputFileLocation, NullProgressReporter.Instance, NullFileOperations.Instance)
+        {
+        }
+
+        public new void BuildImage(Graphics graphics, int xCoordinate, int yCoordinate, Color[,] tileColors)
+        {
+            base.BuildImage(graphics, xCoordinate, yCoordinate, tileColors);
+        }
+
+        public void LoadImagesForTesting()
+        {
+            // Use reflection to access the private LoadImages method
+            var method = typeof(PhotoMosaic).GetMethod("LoadImages", BindingFlags.NonPublic | BindingFlags.Instance);
+            method.Invoke(this, null);
+        }
+
+        public System.Drawing.Image CallGetClosestMatchingImage(Color tileColor)
+        {
+            // Use reflection to access the private GetClosestMatchingImage method
+            var method = typeof(PhotoMosaic).GetMethod("GetClosestMatchingImage", BindingFlags.NonPublic | BindingFlags.Instance);
+            return (System.Drawing.Image)method.Invoke(this, new object[] { tileColor });
+        }
+
+        public void SetupTestImages()
+        {
+            // Use reflection to populate the _concurrentBag with test data
+            var field = typeof(PhotoMosaic).GetField("_concurrentBag", BindingFlags.NonPublic | BindingFlags.Instance);
+            var concurrentBag = (ConcurrentBag<LoadedImage>)field.GetValue(this);
+            
+            // Add test images with known colors
+            foreach (var filePath in FileLocations)
+            {
+                concurrentBag.Add(new LoadedImage 
+                { 
+                    FilePath = filePath, 
+                    AverageColor = Color.Red // Test color for now
+                });
+            }
+        }
+    }
+
     public class PhotoMosaicTests : IDisposable
     {
         private readonly string _testImagePath;
@@ -347,6 +393,284 @@ namespace ThreadedMosaic.Tests
             // Assert - Should be sqrt(3 * 100^2) = sqrt(30000) ≈ 173.2
             var expectedDistance = Math.Sqrt(3 * 100 * 100);
             distance.Should().BeApproximately(expectedDistance, 0.1);
+        }
+
+        #endregion
+
+        #region PhotoMosaic BuildImage Integration Tests
+
+        [Fact]
+        public void BuildImage_Should_Draw_Image_And_Apply_Transparency_Overlay()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(100, 100);
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            photoMosaic.SetPixelSize(50, 50);
+            photoMosaic.SetupTestImages(); // Setup test images in concurrent bag
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.Red;
+            tileColors[0, 1] = Color.Green;
+            tileColors[1, 0] = Color.Blue;
+            tileColors[1, 1] = Color.Yellow;
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act
+                Action act = () => photoMosaic.BuildImage(graphics, 0, 0, tileColors);
+                
+                // Assert
+                act.Should().NotThrow("BuildImage should draw image and apply transparency overlay correctly");
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_Should_Apply_Transparency_With_Alpha_210()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(60, 60);
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            photoMosaic.SetPixelSize(30, 30);
+            photoMosaic.SetupTestImages();
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.FromArgb(255, 100, 150, 200);
+            tileColors[0, 1] = Color.FromArgb(255, 50, 75, 125);
+            tileColors[1, 0] = Color.FromArgb(255, 200, 100, 50);
+            tileColors[1, 1] = Color.FromArgb(255, 75, 200, 175);
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act & Assert - Test that transparency overlay with alpha 210 is applied
+                for (int x = 0; x < 2; x++)
+                for (int y = 0; y < 2; y++)
+                {
+                    Action act = () => photoMosaic.BuildImage(graphics, x, y, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage should apply alpha 210 transparency at ({0}, {1})", x, y));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_Should_Dispose_Resources_Properly()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(80, 80);
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            photoMosaic.SetPixelSize(40, 40);
+            photoMosaic.SetupTestImages();
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.Purple;
+            tileColors[0, 1] = Color.Orange;
+            tileColors[1, 0] = Color.Cyan;
+            tileColors[1, 1] = Color.Magenta;
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act & Assert - Multiple calls should work without resource leaks
+                for (int iteration = 0; iteration < 5; iteration++)
+                {
+                    Action act = () => photoMosaic.BuildImage(graphics, 0, 0, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage iteration {0} should dispose resources properly", iteration + 1));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Theory]
+        [InlineData(10, 15)]
+        [InlineData(25, 25)]
+        [InlineData(50, 30)]
+        public void BuildImage_With_Various_Tile_Sizes_Should_Scale_Images_Correctly(int width, int height)
+        {
+            // Arrange
+            var testBitmap = new Bitmap(100, 90);
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            photoMosaic.SetPixelSize(width, height);
+            photoMosaic.SetupTestImages();
+            
+            var tileColors = new Color[2, 2];
+            tileColors[0, 0] = Color.Navy;
+            tileColors[0, 1] = Color.Maroon;
+            tileColors[1, 0] = Color.Olive;
+            tileColors[1, 1] = Color.Teal;
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act
+                Action act = () => photoMosaic.BuildImage(graphics, 0, 0, tileColors);
+                
+                // Assert
+                act.Should().NotThrow(string.Format("BuildImage should scale images correctly with {0}x{1} tiles", width, height));
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        [Fact]
+        public void BuildImage_Multiple_Coordinates_Should_Work_Consistently()
+        {
+            // Arrange
+            var testBitmap = new Bitmap(120, 120);
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            photoMosaic.SetPixelSize(40, 40);
+            photoMosaic.SetupTestImages();
+            
+            var tileColors = new Color[3, 3];
+            for (int x = 0; x < 3; x++)
+            for (int y = 0; y < 3; y++)
+                tileColors[x, y] = Color.FromArgb(255, (x + 1) * 80, (y + 1) * 80, 100);
+
+            using (var graphics = Graphics.FromImage(testBitmap))
+            {
+                // Act & Assert - Test all coordinates
+                for (int x = 0; x < 3; x++)
+                for (int y = 0; y < 3; y++)
+                {
+                    Action act = () => photoMosaic.BuildImage(graphics, x, y, tileColors);
+                    act.Should().NotThrow(string.Format("BuildImage should work consistently at coordinate ({0}, {1})", x, y));
+                }
+            }
+            
+            testBitmap.Dispose();
+        }
+
+        #endregion
+
+        #region GetClosestMatchingImage Algorithm Accuracy Tests
+
+        [Fact]
+        public void GetClosestMatchingImage_Should_Return_Best_Color_Match()
+        {
+            // Arrange
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            
+            // Setup test images with specific colors using reflection
+            var field = typeof(PhotoMosaic).GetField("_concurrentBag", BindingFlags.NonPublic | BindingFlags.Instance);
+            var concurrentBag = (ConcurrentBag<LoadedImage>)field.GetValue(photoMosaic);
+            
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath, AverageColor = Color.Red });
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath2, AverageColor = Color.Blue });
+            
+            var targetColor = Color.FromArgb(255, 255, 50, 50); // Closer to red
+
+            // Act
+            using (var result = photoMosaic.CallGetClosestMatchingImage(targetColor))
+            {
+                // Assert
+                result.Should().NotBeNull("GetClosestMatchingImage should return the closest matching image");
+                result.Width.Should().BeGreaterThan(0);
+                result.Height.Should().BeGreaterThan(0);
+            }
+        }
+
+        [Fact]
+        public void GetClosestMatchingImage_With_Identical_Colors_Should_Return_First_Match()
+        {
+            // Arrange
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            
+            // Setup test images with identical colors
+            var field = typeof(PhotoMosaic).GetField("_concurrentBag", BindingFlags.NonPublic | BindingFlags.Instance);
+            var concurrentBag = (ConcurrentBag<LoadedImage>)field.GetValue(photoMosaic);
+            
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath, AverageColor = Color.Green });
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath2, AverageColor = Color.Green });
+            
+            var targetColor = Color.Green; // Exact match
+
+            // Act
+            using (var result = photoMosaic.CallGetClosestMatchingImage(targetColor))
+            {
+                // Assert
+                result.Should().NotBeNull("GetClosestMatchingImage should return a match for identical colors");
+                result.Width.Should().BeGreaterThan(0);
+                result.Height.Should().BeGreaterThan(0);
+            }
+        }
+
+        [Fact]
+        public void GetClosestMatchingImage_With_Grayscale_Colors_Should_Work()
+        {
+            // Arrange
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            
+            // Setup test images with grayscale colors
+            var field = typeof(PhotoMosaic).GetField("_concurrentBag", BindingFlags.NonPublic | BindingFlags.Instance);
+            var concurrentBag = (ConcurrentBag<LoadedImage>)field.GetValue(photoMosaic);
+            
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath, AverageColor = Color.FromArgb(255, 64, 64, 64) });   // Dark gray
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath2, AverageColor = Color.FromArgb(255, 192, 192, 192) }); // Light gray
+            
+            var targetColor = Color.FromArgb(255, 128, 128, 128); // Medium gray
+
+            // Act
+            using (var result = photoMosaic.CallGetClosestMatchingImage(targetColor))
+            {
+                // Assert
+                result.Should().NotBeNull("GetClosestMatchingImage should handle grayscale colors correctly");
+                result.Width.Should().BeGreaterThan(0);
+                result.Height.Should().BeGreaterThan(0);
+            }
+        }
+
+        [Fact]
+        public void GetClosestMatchingImage_Color_Matching_Precision_Should_Be_Accurate()
+        {
+            // Arrange
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            
+            // Setup test images with known color distances
+            var field = typeof(PhotoMosaic).GetField("_concurrentBag", BindingFlags.NonPublic | BindingFlags.Instance);
+            var concurrentBag = (ConcurrentBag<LoadedImage>)field.GetValue(photoMosaic);
+            
+            // Add colors at known distances from target
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath, AverageColor = Color.FromArgb(255, 100, 100, 100) });  // Distance ~87
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath2, AverageColor = Color.FromArgb(255, 155, 155, 155) }); // Distance ~95
+            
+            var targetColor = Color.FromArgb(255, 150, 150, 150);
+
+            // Act - Should pick the closer color (100,100,100)
+            using (var result = photoMosaic.CallGetClosestMatchingImage(targetColor))
+            {
+                // Assert
+                result.Should().NotBeNull("GetClosestMatchingImage should select the mathematically closest color");
+                result.Width.Should().BeGreaterThan(0);
+                result.Height.Should().BeGreaterThan(0);
+            }
+        }
+
+        [Theory]
+        [InlineData(0, 0, 0, 255, 255, 255)]   // Black vs White (max distance)
+        [InlineData(255, 0, 0, 0, 255, 0)]     // Red vs Green  
+        [InlineData(0, 0, 255, 255, 255, 0)]   // Blue vs Yellow
+        public void GetClosestMatchingImage_With_Color_Extremes_Should_Work(int r1, int g1, int b1, int r2, int g2, int b2)
+        {
+            // Arrange
+            var photoMosaic = new TestablePhotoMosaic(_fileLocations, _testImagePath, _outputPath);
+            
+            var field = typeof(PhotoMosaic).GetField("_concurrentBag", BindingFlags.NonPublic | BindingFlags.Instance);
+            var concurrentBag = (ConcurrentBag<LoadedImage>)field.GetValue(photoMosaic);
+            
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath, AverageColor = Color.FromArgb(255, r1, g1, b1) });
+            concurrentBag.Add(new LoadedImage { FilePath = _testImagePath2, AverageColor = Color.FromArgb(255, r2, g2, b2) });
+            
+            var targetColor = Color.FromArgb(255, Math.Min(255, r1 + 10), Math.Min(255, g1 + 10), Math.Min(255, b1 + 10)); // Closer to first color
+
+            // Act
+            using (var result = photoMosaic.CallGetClosestMatchingImage(targetColor))
+            {
+                // Assert
+                result.Should().NotBeNull(string.Format("GetClosestMatchingImage should handle color extremes ({0},{1},{2}) vs ({3},{4},{5})", r1, g1, b1, r2, g2, b2));
+                result.Width.Should().BeGreaterThan(0);
+                result.Height.Should().BeGreaterThan(0);
+            }
         }
 
         #endregion

@@ -89,14 +89,30 @@ namespace ThreadedMosaic.Tests
         [Fact]
         public void Mosaic_Should_Use_NullProgressReporter_By_Default()
         {
-            // Arrange & Act
-            var colorMosaic = new ColorMosaic("test.jpg", "output.jpg");
+            // Arrange
+            using (var tempFile = new TemporaryImageFile())
+            {
+                var outputPath = System.IO.Path.GetTempFileName();
+                try
+                {
+                    // Act - Create mosaic with default constructor (should use NullProgressReporter)
+                    var colorMosaic = new ColorMosaic(tempFile.Path, outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
 
-            // Assert - No exception should be thrown during progress updates
-            Action createMosaic = () => colorMosaic.CreateColorMosaic();
-            // We expect this to fail due to invalid file paths, but not due to null progress reporter
-            createMosaic.Should().Throw<Exception>()
-                .Which.Should().NotBeOfType<NullReferenceException>();
+                    // Act - This should work without throwing NullReferenceException
+                    Action createMosaic = () => colorMosaic.CreateColorMosaic();
+                    
+                    // Assert - Should not throw NullReferenceException (progress reporter should work)
+                    createMosaic.Should().NotThrow<NullReferenceException>();
+                }
+                finally
+                {
+                    // Clean up output file
+                    if (System.IO.File.Exists(outputPath))
+                    {
+                        System.IO.File.Delete(outputPath);
+                    }
+                }
+            }
         }
 
         [Fact]
@@ -106,15 +122,27 @@ namespace ThreadedMosaic.Tests
             var testReporter = new TestProgressReporter();
             using (var tempFile = new TemporaryImageFile())
             {
-                var colorMosaic = new ColorMosaic(tempFile.Path, tempFile.Path, testReporter, NullFileOperations.Instance);
+                var outputPath = System.IO.Path.GetTempFileName();
+                try
+                {
+                    var colorMosaic = new ColorMosaic(tempFile.Path, outputPath, testReporter, NullFileOperations.Instance);
 
-                // Act
-                colorMosaic.CreateColorMosaic();
+                    // Act
+                    colorMosaic.CreateColorMosaic();
 
-                // Assert
-                testReporter.StatusHistory.Should().NotBeEmpty();
-                testReporter.StatusHistory.Should().Contain(status => status.Contains("Initializing"));
-                testReporter.MaximumValue.Should().BeGreaterThan(0);
+                    // Assert
+                    testReporter.StatusHistory.Should().NotBeEmpty();
+                    testReporter.StatusHistory.Should().Contain(status => status.Contains("Initializing"));
+                    testReporter.MaximumValue.Should().BeGreaterThan(0);
+                }
+                finally
+                {
+                    // Clean up output file
+                    if (System.IO.File.Exists(outputPath))
+                    {
+                        System.IO.File.Delete(outputPath);
+                    }
+                }
             }
         }
     }

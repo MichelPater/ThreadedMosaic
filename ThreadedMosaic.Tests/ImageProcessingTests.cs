@@ -132,11 +132,11 @@ namespace ThreadedMosaic.Tests
             var testMosaic = new TestMosaic(_testImagePath, _outputPath);
             testMosaic.SetPixelSize(15, 20);
 
-            // Act - 105 width doesn't divide evenly by 15, nor does 85 height by 20
+            // Act - 105 width divides evenly by 15, but 85 height doesn't divide evenly by 20
             var colorTiles = testMosaic.InitializeColorTiles(105, 85);
 
-            // Assert - Should add extra tiles for remainder
-            colorTiles.GetLength(0).Should().Be(8); // 105/15 = 7 remainder 0, so 7+1 = 8
+            // Assert - Should add extra tiles for remainder in height only
+            colorTiles.GetLength(0).Should().Be(7); // 105/15 = 7 remainder 0, so 7
             colorTiles.GetLength(1).Should().Be(5); // 85/20 = 4 remainder 5, so 4+1 = 5
         }
 

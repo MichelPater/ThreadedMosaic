@@ -1,0 +1,9 @@
+<Project>
+  <PropertyGroup>
+    <!-- Configure for .NET Framework 4.7.2 compatibility -->
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <UseHostCompilerIfAvailable>false</UseHostCompilerIfAvailable>
+    <PreferredToolArchitecture>x64</PreferredToolArchitecture>
+    <MSBuildForceArchitecture>x64</MSBuildForceArchitecture>
+  </PropertyGroup>
+</Project>

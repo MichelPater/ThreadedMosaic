@@ -249,5 +249,106 @@ namespace ThreadedMosaic.Tests
             photoMosaic.XPixelCount.Should().Be(width);
             photoMosaic.YPixelCount.Should().Be(height);
         }
+
+        #region CompareColors Algorithm Tests
+
+        [Fact]
+        public void CompareColors_With_Identical_Colors_Should_Return_Zero()
+        {
+            // Arrange
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
+            var color = Color.FromArgb(128, 64, 192);
+
+            // Act
+            var distance = photoMosaic.CompareColors(color, color);
+
+            // Assert
+            distance.Should().Be(0.0);
+        }
+
+        [Fact]
+        public void CompareColors_With_Black_And_White_Should_Return_Maximum_Distance()
+        {
+            // Arrange
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
+            var black = Color.FromArgb(0, 0, 0);
+            var white = Color.FromArgb(255, 255, 255);
+
+            // Act
+            var distance = photoMosaic.CompareColors(black, white);
+
+            // Assert - Should be sqrt(255^2 + 255^2 + 255^2) = sqrt(3*255^2) ≈ 441.67
+            var expectedDistance = Math.Sqrt(3 * 255 * 255);
+            distance.Should().BeApproximately(expectedDistance, 0.1);
+        }
+
+        [Fact]
+        public void CompareColors_Mathematical_Accuracy_Should_Match_Euclidean_Distance()
+        {
+            // Arrange
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
+            var color1 = Color.FromArgb(100, 150, 200);
+            var color2 = Color.FromArgb(110, 140, 180);
+
+            // Act
+            var actualDistance = photoMosaic.CompareColors(color1, color2);
+
+            // Assert - Manual calculation: sqrt((110-100)^2 + (140-150)^2 + (180-200)^2) = sqrt(100 + 100 + 400) = sqrt(600)
+            var expectedDistance = Math.Sqrt(Math.Pow(110 - 100, 2) + Math.Pow(140 - 150, 2) + Math.Pow(180 - 200, 2));
+            actualDistance.Should().BeApproximately(expectedDistance, 0.001);
+        }
+
+        [Theory]
+        [InlineData(255, 0, 0, 0, 255, 0)] // Red vs Green
+        [InlineData(255, 0, 0, 0, 0, 255)] // Red vs Blue  
+        [InlineData(0, 255, 0, 0, 0, 255)] // Green vs Blue
+        public void CompareColors_With_Pure_Colors_Should_Return_Expected_Distance(int r1, int g1, int b1, int r2, int g2, int b2)
+        {
+            // Arrange
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
+            var color1 = Color.FromArgb(r1, g1, b1);
+            var color2 = Color.FromArgb(r2, g2, b2);
+
+            // Act
+            var actualDistance = photoMosaic.CompareColors(color1, color2);
+
+            // Assert
+            var expectedDistance = Math.Sqrt(Math.Pow(r2 - r1, 2) + Math.Pow(g2 - g1, 2) + Math.Pow(b2 - b1, 2));
+            actualDistance.Should().BeApproximately(expectedDistance, 0.001);
+        }
+
+        [Fact]
+        public void CompareColors_Should_Be_Symmetric()
+        {
+            // Arrange
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
+            var color1 = Color.FromArgb(75, 125, 225);
+            var color2 = Color.FromArgb(150, 100, 50);
+
+            // Act
+            var distance1to2 = photoMosaic.CompareColors(color1, color2);
+            var distance2to1 = photoMosaic.CompareColors(color2, color1);
+
+            // Assert - Distance calculation should be symmetric
+            distance1to2.Should().BeApproximately(distance2to1, 0.001);
+        }
+
+        [Fact]
+        public void CompareColors_With_Grayscale_Colors_Should_Work_Correctly()
+        {
+            // Arrange
+            var photoMosaic = new PhotoMosaic(_fileLocations, _testImagePath, _outputPath, NullProgressReporter.Instance, NullFileOperations.Instance);
+            var lightGray = Color.FromArgb(200, 200, 200);
+            var darkGray = Color.FromArgb(100, 100, 100);
+
+            // Act
+            var distance = photoMosaic.CompareColors(lightGray, darkGray);
+
+            // Assert - Should be sqrt(3 * 100^2) = sqrt(30000) ≈ 173.2
+            var expectedDistance = Math.Sqrt(3 * 100 * 100);
+            distance.Should().BeApproximately(expectedDistance, 0.1);
+        }
+
+        #endregion
     }
 }

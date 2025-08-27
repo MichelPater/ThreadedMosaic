@@ -81,7 +81,7 @@ namespace ThreadedMosaic.Mosaic
             return closestImage;
         }
 
-        private double CompareColors(Color firstColor, Color secondColor)
+        public double CompareColors(Color firstColor, Color secondColor)
         {
             double redChannel = Math.Pow((double)firstColor.R - secondColor.R, 2);
             double blueChannel = Math.Pow((double)firstColor.B - secondColor.B, 2);

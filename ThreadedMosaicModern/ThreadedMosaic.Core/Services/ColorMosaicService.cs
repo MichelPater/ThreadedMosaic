@@ -32,7 +32,7 @@ namespace ThreadedMosaic.Core.Services
             return await CreateMosaicAsync(request, progressReporter, cancellationToken).ConfigureAwait(false);
         }
 
-        public async Task<MosaicResult> CreateHueMosaicAsync(
+        public Task<MosaicResult> CreateHueMosaicAsync(
             HueMosaicRequest request, 
             IProgressReporter? progressReporter = null, 
             CancellationToken cancellationToken = default)
@@ -40,7 +40,7 @@ namespace ThreadedMosaic.Core.Services
             throw new NotSupportedException("Use HueMosaicService for hue-based mosaics");
         }
 
-        public async Task<MosaicResult> CreatePhotoMosaicAsync(
+        public Task<MosaicResult> CreatePhotoMosaicAsync(
             PhotoMosaicRequest request, 
             IProgressReporter? progressReporter = null, 
             CancellationToken cancellationToken = default)

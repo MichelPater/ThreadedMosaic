@@ -1,7 +1,10 @@
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using ThreadedMosaic.Core.Data;
+using ThreadedMosaic.Core.Data.Repositories;
 using ThreadedMosaic.Core.Interfaces;
 using ThreadedMosaic.Core.Models;
 using ThreadedMosaic.Core.Services;
@@ -23,6 +26,9 @@ namespace ThreadedMosaic.Core.Extensions
             // Configure settings
             services.Configure<MosaicConfiguration>(configuration.GetSection("MosaicConfiguration"));
 
+            // Add database services
+            services.AddDatabaseServices(configuration);
+
             // Register core interfaces and implementations
             services.AddScoped<IImageProcessingService, ImageSharpProcessingService>();
             services.AddScoped<IFileOperations, ModernFileOperations>();
@@ -37,7 +43,7 @@ namespace ThreadedMosaic.Core.Extensions
 
             // Register progress reporters
             services.AddTransient<ConsoleProgressReporter>();
-            services.AddTransient<SignalRProgressReporter>();
+            // services.AddTransient<SignalRProgressReporter>(); // Commented out for migration - requires ISignalRHubClient
             services.TryAddSingleton<NullProgressReporter>(_ => NullProgressReporter.Instance);
 
             // Add memory cache if not already registered
@@ -83,7 +89,7 @@ namespace ThreadedMosaic.Core.Extensions
 
             // Register progress reporters
             services.AddTransient<ConsoleProgressReporter>();
-            services.AddTransient<SignalRProgressReporter>();
+            // services.AddTransient<SignalRProgressReporter>(); // Commented out for migration - requires ISignalRHubClient
             services.TryAddSingleton<NullProgressReporter>(_ => NullProgressReporter.Instance);
 
             // Add memory cache if not already registered
@@ -125,6 +131,42 @@ namespace ThreadedMosaic.Core.Extensions
             services.RemoveAll<IImageProcessingService>();
             services.AddScoped<IImageProcessingService, TImageProcessingService>();
             return services;
+        }
+
+        /// <summary>
+        /// Adds database services to the service collection
+        /// </summary>
+        public static IServiceCollection AddDatabaseServices(this IServiceCollection services, IConfiguration configuration)
+        {
+            // Add DbContext with SQLite
+            var connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? "Data Source=threadedmosaic.db";
+
+            services.AddDbContext<ThreadedMosaicDbContext>(options =>
+            {
+                options.UseSqlite(connectionString);
+                options.EnableSensitiveDataLogging(false); // Disable in production
+                options.EnableDetailedErrors(true);
+            });
+
+            // Add repositories
+            services.AddScoped<IImageMetadataRepository, ImageMetadataRepository>();
+            services.AddScoped<IMosaicProcessingResultRepository, MosaicProcessingResultRepository>();
+
+            return services;
+        }
+
+        /// <summary>
+        /// Ensures database is created and migrations are applied
+        /// </summary>
+        public static async Task<IServiceProvider> EnsureDatabaseCreatedAsync(this IServiceProvider serviceProvider)
+        {
+            using var scope = serviceProvider.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<ThreadedMosaicDbContext>();
+            
+            await dbContext.Database.MigrateAsync();
+            
+            return serviceProvider;
         }
     }
 }

@@ -27,7 +27,7 @@ namespace ThreadedMosaic.Core.Services
         {
         }
 
-        public async Task<MosaicResult> CreateColorMosaicAsync(
+        public Task<MosaicResult> CreateColorMosaicAsync(
             ColorMosaicRequest request, 
             IProgressReporter? progressReporter = null, 
             CancellationToken cancellationToken = default)
@@ -35,7 +35,7 @@ namespace ThreadedMosaic.Core.Services
             throw new NotSupportedException("Use ColorMosaicService for color-based mosaics");
         }
 
-        public async Task<MosaicResult> CreateHueMosaicAsync(
+        public Task<MosaicResult> CreateHueMosaicAsync(
             HueMosaicRequest request, 
             IProgressReporter? progressReporter = null, 
             CancellationToken cancellationToken = default)

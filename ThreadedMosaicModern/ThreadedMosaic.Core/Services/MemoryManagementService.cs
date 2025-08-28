@@ -245,7 +245,7 @@ namespace ThreadedMosaic.Core.Services
             }
         }
 
-        public async Task<bool> RequestMemoryForTaskAsync(long estimatedMemoryBytes)
+        public Task<bool> RequestMemoryForTaskAsync(long estimatedMemoryBytes)
         {
             lock (_lockObject)
             {
@@ -256,14 +256,14 @@ namespace ThreadedMosaic.Core.Services
                 {
                     _logger.LogWarning("Memory request denied: projected usage {ProjectedMB:F2} MB ({ProjectedPercent:P1}) exceeds critical threshold",
                         projectedUsage / 1024.0 / 1024.0, projectedPercent);
-                    return false;
+                    return Task.FromResult(false);
                 }
 
                 _logger.LogTrace("Memory request approved: {RequestedMB:F2} MB (projected: {ProjectedMB:F2} MB, {ProjectedPercent:P1})",
                     estimatedMemoryBytes / 1024.0 / 1024.0,
                     projectedUsage / 1024.0 / 1024.0,
                     projectedPercent);
-                return true;
+                return Task.FromResult(true);
             }
         }
 

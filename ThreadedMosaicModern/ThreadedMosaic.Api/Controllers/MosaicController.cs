@@ -145,18 +145,18 @@ namespace ThreadedMosaic.Api.Controllers
         [SwaggerOperation(Summary = "Get mosaic status", Description = "Gets the current processing status of a mosaic")]
         [SwaggerResponse(200, "Status retrieved successfully", typeof(object))]
         [SwaggerResponse(404, "Mosaic not found")]
-        public async Task<ActionResult> GetMosaicStatus(Guid id)
+        public Task<ActionResult> GetMosaicStatus(Guid id)
         {
             try
             {
                 // TODO: Implement status tracking with a status store
                 _logger.LogInformation("Getting status for mosaic: {MosaicId}", id);
-                return Ok(new { id, status = MosaicStatus.Unknown, message = "Status tracking not yet implemented" });
+                return Task.FromResult<ActionResult>(Ok(new { id, status = MosaicStatus.Unknown, message = "Status tracking not yet implemented" }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting mosaic status for ID: {MosaicId}", id);
-                return StatusCode(500, new { error = "An error occurred while getting mosaic status" });
+                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while getting mosaic status" }));
             }
         }
 
@@ -170,18 +170,18 @@ namespace ThreadedMosaic.Api.Controllers
         [SwaggerResponse(200, "Mosaic cancelled successfully")]
         [SwaggerResponse(404, "Mosaic not found")]
         [SwaggerResponse(400, "Mosaic cannot be cancelled")]
-        public async Task<ActionResult> CancelMosaic(Guid id)
+        public Task<ActionResult> CancelMosaic(Guid id)
         {
             try
             {
                 // TODO: Implement cancellation tracking
                 _logger.LogInformation("Cancelling mosaic: {MosaicId}", id);
-                return Ok(new { id, cancelled = false, message = "Cancellation not yet implemented" });
+                return Task.FromResult<ActionResult>(Ok(new { id, cancelled = false, message = "Cancellation not yet implemented" }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cancelling mosaic for ID: {MosaicId}", id);
-                return StatusCode(500, new { error = "An error occurred while cancelling the mosaic" });
+                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while cancelling the mosaic" }));
             }
         }
 
@@ -194,18 +194,18 @@ namespace ThreadedMosaic.Api.Controllers
         [SwaggerOperation(Summary = "Get mosaic preview", Description = "Gets a preview/thumbnail of the processing mosaic")]
         [SwaggerResponse(200, "Preview retrieved successfully", typeof(byte[]))]
         [SwaggerResponse(404, "Mosaic or preview not found")]
-        public async Task<ActionResult> GetMosaicPreview(Guid id)
+        public Task<ActionResult> GetMosaicPreview(Guid id)
         {
             try
             {
                 // TODO: Implement preview generation
                 _logger.LogInformation("Getting preview for mosaic: {MosaicId}", id);
-                return NotFound(new { id, message = "Preview generation not yet implemented" });
+                return Task.FromResult<ActionResult>(NotFound(new { id, message = "Preview generation not yet implemented" }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting mosaic preview for ID: {MosaicId}", id);
-                return StatusCode(500, new { error = "An error occurred while getting mosaic preview" });
+                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while getting mosaic preview" }));
             }
         }
 
@@ -219,18 +219,18 @@ namespace ThreadedMosaic.Api.Controllers
         [SwaggerResponse(200, "Mosaic downloaded successfully")]
         [SwaggerResponse(404, "Mosaic not found")]
         [SwaggerResponse(400, "Mosaic not completed")]
-        public async Task<ActionResult> GetMosaicResult(Guid id)
+        public Task<ActionResult> GetMosaicResult(Guid id)
         {
             try
             {
                 // TODO: Implement result file serving
                 _logger.LogInformation("Getting result for mosaic: {MosaicId}", id);
-                return NotFound(new { id, message = "Result serving not yet implemented" });
+                return Task.FromResult<ActionResult>(NotFound(new { id, message = "Result serving not yet implemented" }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting mosaic result for ID: {MosaicId}", id);
-                return StatusCode(500, new { error = "An error occurred while getting mosaic result" });
+                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while getting mosaic result" }));
             }
         }
     }

@@ -217,7 +217,7 @@ namespace ThreadedMosaic.Core.Services
             await Task.CompletedTask;
         }
 
-        public async Task<CleanupResult> ForceCleanupAsync(CancellationToken cancellationToken = default)
+        public Task<CleanupResult> ForceCleanupAsync(CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Force cleanup requested");
             
@@ -227,7 +227,7 @@ namespace ThreadedMosaic.Core.Services
 
             if (!Directory.Exists(_tempDirectory))
             {
-                return new CleanupResult(0, 0, 0);
+                return Task.FromResult(new CleanupResult(0, 0, 0));
             }
 
             try
@@ -288,20 +288,20 @@ namespace ThreadedMosaic.Core.Services
                 _logger.LogError(ex, "Error during force cleanup");
             }
 
-            return new CleanupResult(deletedFiles, deletedDirectories, reclaimedBytes);
+            return Task.FromResult(new CleanupResult(deletedFiles, deletedDirectories, reclaimedBytes));
         }
 
-        public async Task<long> GetAvailableDiskSpaceAsync()
+        public Task<long> GetAvailableDiskSpaceAsync()
         {
             try
             {
                 var driveInfo = new DriveInfo(Path.GetPathRoot(_tempDirectory) ?? "C:");
-                return driveInfo.AvailableFreeSpace;
+                return Task.FromResult(driveInfo.AvailableFreeSpace);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting available disk space");
-                return -1;
+                return Task.FromResult(-1L);
             }
         }
     }

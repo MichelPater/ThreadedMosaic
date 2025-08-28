@@ -119,7 +119,7 @@
         return string.IsNullOrEmpty(directory) ? item.Path : $"...{directory[Math.Max(0, directory.Length - 40)..]}";
     }
 
-    private async Task LoadRecentItems()
+    private Task LoadRecentItems()
     {
         try
         {
@@ -131,9 +131,10 @@
         {
             RecentItems = new List<RecentItem>();
         }
+        return Task.CompletedTask;
     }
 
-    private async Task SaveRecentItems()
+    private Task SaveRecentItems()
     {
         try
         {
@@ -144,6 +145,7 @@
         {
             // Ignore save errors
         }
+        return Task.CompletedTask;
     }
 
     private class RecentItem

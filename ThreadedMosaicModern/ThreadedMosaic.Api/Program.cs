@@ -45,6 +45,9 @@ else
 
 var app = builder.Build();
 
+// Initialize database
+await app.Services.EnsureDatabaseCreatedAsync();
+
 // Configure the HTTP request pipeline
 app.UseMiddleware<GlobalExceptionMiddleware>();
 

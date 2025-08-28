@@ -127,13 +127,13 @@ namespace ThreadedMosaic.Api.Controllers
         [SwaggerResponse(200, "Files deleted successfully")]
         [SwaggerResponse(404, "Files not found")]
         [SwaggerResponse(400, "Invalid request")]
-        public async Task<ActionResult> DeleteFiles(string id)
+        public Task<ActionResult> DeleteFiles(string id)
         {
             try
             {
                 if (string.IsNullOrEmpty(id))
                 {
-                    return BadRequest(new { error = "ID is required" });
+                    return Task.FromResult<ActionResult>(BadRequest(new { error = "ID is required" }));
                 }
 
                 _logger.LogInformation("Deleting files with ID: {Id}", id);
@@ -146,7 +146,7 @@ namespace ThreadedMosaic.Api.Controllers
                 {
                     Directory.Delete(targetPath, true);
                     _logger.LogInformation("Deleted directory: {Path}", targetPath);
-                    return Ok(new { message = "Directory deleted successfully", path = targetPath });
+                    return Task.FromResult<ActionResult>(Ok(new { message = "Directory deleted successfully", path = targetPath }));
                 }
 
                 // Try as individual file
@@ -154,16 +154,16 @@ namespace ThreadedMosaic.Api.Controllers
                 {
                     System.IO.File.Delete(id);
                     _logger.LogInformation("Deleted file: {Path}", id);
-                    return Ok(new { message = "File deleted successfully", path = id });
+                    return Task.FromResult<ActionResult>(Ok(new { message = "File deleted successfully", path = id }));
                 }
 
                 _logger.LogWarning("File or directory not found: {Id}", id);
-                return NotFound(new { error = "File or directory not found" });
+                return Task.FromResult<ActionResult>(NotFound(new { error = "File or directory not found" }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting files with ID: {Id}", id);
-                return StatusCode(500, new { error = "An error occurred while deleting files" });
+                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while deleting files" }));
             }
         }
 
@@ -176,18 +176,18 @@ namespace ThreadedMosaic.Api.Controllers
         [SwaggerOperation(Summary = "Get file info", Description = "Gets information about uploaded files in a directory")]
         [SwaggerResponse(200, "File information retrieved successfully")]
         [SwaggerResponse(404, "Directory not found")]
-        public async Task<ActionResult> GetFileInfo([FromQuery, Required] string directory)
+        public Task<ActionResult> GetFileInfo([FromQuery, Required] string directory)
         {
             try
             {
                 if (string.IsNullOrEmpty(directory))
                 {
-                    return BadRequest(new { error = "Directory parameter is required" });
+                    return Task.FromResult<ActionResult>(BadRequest(new { error = "Directory parameter is required" }));
                 }
 
                 if (!Directory.Exists(directory))
                 {
-                    return NotFound(new { error = "Directory not found" });
+                    return Task.FromResult<ActionResult>(NotFound(new { error = "Directory not found" }));
                 }
 
                 var files = Directory.GetFiles(directory)
@@ -204,17 +204,17 @@ namespace ThreadedMosaic.Api.Controllers
                 _logger.LogInformation("Retrieved info for {FileCount} files in directory: {Directory}", 
                     files.Length, directory);
 
-                return Ok(new
+                return Task.FromResult<ActionResult>(Ok(new
                 {
                     directory,
                     fileCount = files.Length,
                     files
-                });
+                }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting file info for directory: {Directory}", directory);
-                return StatusCode(500, new { error = "An error occurred while getting file information" });
+                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while getting file information" }));
             }
         }
 
@@ -226,7 +226,7 @@ namespace ThreadedMosaic.Api.Controllers
         [HttpPost("cleanup")]
         [SwaggerOperation(Summary = "Cleanup temporary files", Description = "Removes temporary files older than specified time")]
         [SwaggerResponse(200, "Cleanup completed successfully")]
-        public async Task<ActionResult> CleanupTempFiles([FromQuery] int hoursOld = 24)
+        public Task<ActionResult> CleanupTempFiles([FromQuery] int hoursOld = 24)
         {
             try
             {
@@ -235,7 +235,7 @@ namespace ThreadedMosaic.Api.Controllers
                 var tempDirectory = Path.Combine(Path.GetTempPath(), "ThreadedMosaic");
                 if (!Directory.Exists(tempDirectory))
                 {
-                    return Ok(new { message = "No temporary files to clean up" });
+                    return Task.FromResult<ActionResult>(Ok(new { message = "No temporary files to clean up" }));
                 }
 
                 var cutoffTime = DateTime.Now.AddHours(-hoursOld);
@@ -283,18 +283,18 @@ namespace ThreadedMosaic.Api.Controllers
                 _logger.LogInformation("Cleanup completed: {DeletedFiles} files and {DeletedDirectories} directories deleted", 
                     deletedFiles, deletedDirectories);
 
-                return Ok(new
+                return Task.FromResult<ActionResult>(Ok(new
                 {
                     message = "Cleanup completed successfully",
                     deletedFiles,
                     deletedDirectories,
                     cutoffTime
-                });
+                }));
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during cleanup");
-                return StatusCode(500, new { error = "An error occurred during cleanup" });
+                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred during cleanup" }));
             }
         }
 

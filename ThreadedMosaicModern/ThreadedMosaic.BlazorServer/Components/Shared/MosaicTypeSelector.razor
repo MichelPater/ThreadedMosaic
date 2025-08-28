@@ -1,0 +1,84 @@
+<div class="mb-4">
+    <label class="form-label">Mosaic Type</label>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card @(SelectedType == MosaicType.Color ? "border-primary" : "")">
+                <div class="card-body text-center">
+                    <input class="form-check-input" type="radio" name="mosaicType" id="colorType" 
+                           checked="@(SelectedType == MosaicType.Color)"
+                           @onchange="@(() => SelectType(MosaicType.Color))" />
+                    <label class="form-check-label w-100 mt-2" for="colorType">
+                        <div class="h5 mb-2">🎨 Color Mosaic</div>
+                        <p class="small text-muted mb-0">Match colors directly for vibrant results</p>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card @(SelectedType == MosaicType.Hue ? "border-primary" : "")">
+                <div class="card-body text-center">
+                    <input class="form-check-input" type="radio" name="mosaicType" id="hueType" 
+                           checked="@(SelectedType == MosaicType.Hue)"
+                           @onchange="@(() => SelectType(MosaicType.Hue))" />
+                    <label class="form-check-label w-100 mt-2" for="hueType">
+                        <div class="h5 mb-2">🌈 Hue Mosaic</div>
+                        <p class="small text-muted mb-0">Focus on hue matching with transparency</p>
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card @(SelectedType == MosaicType.Photo ? "border-primary" : "")">
+                <div class="card-body text-center">
+                    <input class="form-check-input" type="radio" name="mosaicType" id="photoType" 
+                           checked="@(SelectedType == MosaicType.Photo)"
+                           @onchange="@(() => SelectType(MosaicType.Photo))" />
+                    <label class="form-check-label w-100 mt-2" for="photoType">
+                        <div class="h5 mb-2">📸 Photo Mosaic</div>
+                        <p class="small text-muted mb-0">Use actual photos as mosaic tiles</p>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Type descriptions -->
+    <div class="mt-3">
+        @if (SelectedType == MosaicType.Color)
+        {
+            <div class="alert alert-info">
+                <strong>Color Mosaic:</strong> Creates a mosaic by directly matching the average colors of your seed images to the colors in your master image. Best for abstract or artistic effects.
+            </div>
+        }
+        else if (SelectedType == MosaicType.Hue)
+        {
+            <div class="alert alert-info">
+                <strong>Hue Mosaic:</strong> Focuses on matching hue values while applying color overlays. Creates a balance between the original image colors and the seed image textures.
+            </div>
+        }
+        else if (SelectedType == MosaicType.Photo)
+        {
+            <div class="alert alert-info">
+                <strong>Photo Mosaic:</strong> Uses your seed images as actual tiles in the mosaic, with intelligent repetition avoidance. Creates the most photorealistic results.
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public MosaicType SelectedType { get; set; } = MosaicType.Color;
+    [Parameter] public EventCallback<MosaicType> SelectedTypeChanged { get; set; }
+
+    private async Task SelectType(MosaicType type)
+    {
+        SelectedType = type;
+        await SelectedTypeChanged.InvokeAsync(type);
+    }
+
+    public enum MosaicType
+    {
+        Color,
+        Hue,
+        Photo
+    }
+}

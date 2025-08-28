@@ -1,7 +1,108 @@
-﻿@page "/"
+@page "/"
 
-<PageTitle>Home</PageTitle>
+<PageTitle>ThreadedMosaic</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="hero-section bg-primary text-white py-5 mb-5">
+    <div class="container text-center">
+        <div class="row">
+            <div class="col-12">
+                <h1 class="display-4 mb-3">🎨 ThreadedMosaic</h1>
+                <p class="lead mb-4">Transform your photos into stunning mosaic artwork with advanced image processing</p>
+                <a href="/create-mosaic" class="btn btn-light btn-lg">
+                    <i class="bi bi-image-fill"></i> Create Your First Mosaic
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 
-Welcome to your new app.
+<div class="container">
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="display-1 text-primary mb-3">🎨</div>
+                    <h4>Color Mosaic</h4>
+                    <p class="text-muted">Match colors directly for vibrant, artistic results with precise color matching algorithms.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="display-1 text-warning mb-3">🌈</div>
+                    <h4>Hue Mosaic</h4>
+                    <p class="text-muted">Focus on hue matching with transparency overlays for balanced artistic effects.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <div class="display-1 text-success mb-3">📸</div>
+                    <h4>Photo Mosaic</h4>
+                    <p class="text-muted">Use actual photos as tiles with intelligent repetition avoidance for photorealistic results.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-lg-6 mb-4">
+            <h3>✨ Modern Features</h3>
+            <ul class="list-unstyled">
+                <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Cross-platform compatibility with .NET 9</li>
+                <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Real-time progress tracking with SignalR</li>
+                <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Advanced image processing with ImageSharp</li>
+                <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Memory management and resource optimization</li>
+                <li class="mb-2"><i class="bi bi-check-circle-fill text-success"></i> Blazor Server for responsive web interface</li>
+            </ul>
+        </div>
+        <div class="col-lg-6 mb-4">
+            <h3>🚀 Performance Optimized</h3>
+            <ul class="list-unstyled">
+                <li class="mb-2"><i class="bi bi-speedometer2 text-primary"></i> Background processing with task throttling</li>
+                <li class="mb-2"><i class="bi bi-cpu-fill text-primary"></i> Multi-threaded tile processing</li>
+                <li class="mb-2"><i class="bi bi-memory text-primary"></i> Intelligent memory management</li>
+                <li class="mb-2"><i class="bi bi-hdd-fill text-primary"></i> Automatic temporary file cleanup</li>
+                <li class="mb-2"><i class="bi bi-graph-up text-primary"></i> Resource monitoring and optimization</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="row mt-5">
+        <div class="col-12 text-center">
+            <div class="card">
+                <div class="card-body">
+                    <h4>Ready to Get Started?</h4>
+                    <p class="text-muted">Create beautiful photo mosaics in just a few simple steps.</p>
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="/create-mosaic" class="btn btn-primary btn-lg me-md-2">
+                            <i class="bi bi-play-fill"></i> Start Creating
+                        </a>
+                        <a href="/settings" class="btn btn-outline-secondary btn-lg">
+                            <i class="bi bi-gear-fill"></i> Configure Settings
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: transform 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+</style>

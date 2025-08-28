@@ -1,0 +1,98 @@
+@inject IJSRuntime JSRuntime
+
+<div class="mb-3">
+    <label class="form-label">Seed Images Directory</label>
+    <div class="input-group">
+        <input type="text" class="form-control" @bind="@SelectedDirectory" placeholder="Select directory containing seed images..." readonly />
+        <button class="btn btn-outline-secondary" type="button" @onclick="@SelectDirectory">
+            <i class="bi bi-folder"></i> Browse
+        </button>
+    </div>
+    @if (!string.IsNullOrEmpty(SelectedDirectory))
+    {
+        <div class="form-text text-success">
+            <i class="bi bi-check-circle"></i> @System.IO.Path.GetFileName(SelectedDirectory)
+            @if (imageCount > 0)
+            {
+                <span class="badge bg-info ms-2">@imageCount images</span>
+            }
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="form-text text-danger">
+            <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? SelectedDirectory { get; set; }
+    [Parameter] public EventCallback<string?> SelectedDirectoryChanged { get; set; }
+
+    private string? errorMessage;
+    private int imageCount = 0;
+
+    private async Task SelectDirectory()
+    {
+        try
+        {
+            // For now, use a simple prompt - in a real application, you'd use a proper directory picker
+            var directory = await JSRuntime.InvokeAsync<string>("prompt", "Enter the path to your seed images directory:");
+            
+            if (!string.IsNullOrEmpty(directory))
+            {
+                // Validate directory exists and contains images
+                if (Directory.Exists(directory))
+                {
+                    var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp", ".gif" };
+                    var imageFiles = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly)
+                        .Where(file => imageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
+                        .ToArray();
+
+                    if (imageFiles.Length > 0)
+                    {
+                        imageCount = imageFiles.Length;
+                        errorMessage = null;
+                        await SelectedDirectoryChanged.InvokeAsync(directory);
+                    }
+                    else
+                    {
+                        errorMessage = "Directory contains no valid image files";
+                        imageCount = 0;
+                    }
+                }
+                else
+                {
+                    errorMessage = "Directory does not exist";
+                    imageCount = 0;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error selecting directory: {ex.Message}";
+            imageCount = 0;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(SelectedDirectory) && Directory.Exists(SelectedDirectory))
+        {
+            try
+            {
+                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp", ".gif" };
+                var imageFiles = Directory.GetFiles(SelectedDirectory, "*.*", SearchOption.TopDirectoryOnly)
+                    .Where(file => imageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
+                    .ToArray();
+                imageCount = imageFiles.Length;
+            }
+            catch
+            {
+                imageCount = 0;
+            }
+        }
+        await base.OnParametersSetAsync();
+    }
+}

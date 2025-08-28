@@ -1,0 +1,107 @@
+@inject IJSRuntime JSRuntime
+
+<div class="mb-3">
+    <label class="form-label">Output Location</label>
+    <div class="input-group">
+        <input type="text" class="form-control" @bind="@OutputPath" placeholder="Specify where to save the mosaic..." />
+        <button class="btn btn-outline-secondary" type="button" @onclick="@SelectLocation">
+            <i class="bi bi-folder"></i> Browse
+        </button>
+    </div>
+    @if (!string.IsNullOrEmpty(OutputPath))
+    {
+        <div class="form-text text-success">
+            <i class="bi bi-check-circle"></i> @System.IO.Path.GetFileName(OutputPath)
+        </div>
+    }
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <div class="form-text text-danger">
+            <i class="bi bi-exclamation-triangle"></i> @errorMessage
+        </div>
+    }
+    <div class="form-text">
+        <small>Supported formats: JPEG, PNG, BMP, WebP. Extension will be added automatically based on selected format.</small>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? OutputPath { get; set; }
+    [Parameter] public EventCallback<string?> OutputPathChanged { get; set; }
+
+    private string? errorMessage;
+
+    protected override void OnInitialized()
+    {
+        // Set default output path if none provided
+        if (string.IsNullOrEmpty(OutputPath))
+        {
+            var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+            var defaultFileName = $"mosaic_{DateTime.Now:yyyyMMdd_HHmmss}";
+            OutputPath = Path.Combine(desktopPath, defaultFileName);
+        }
+    }
+
+    private async Task SelectLocation()
+    {
+        try
+        {
+            // For now, use a simple prompt - in a real application, you'd use a proper file save dialog
+            var currentFileName = string.IsNullOrEmpty(OutputPath) 
+                ? $"mosaic_{DateTime.Now:yyyyMMdd_HHmmss}" 
+                : Path.GetFileNameWithoutExtension(OutputPath);
+                
+            var fileName = await JSRuntime.InvokeAsync<string>("prompt", "Enter the output filename (without extension):", currentFileName);
+            
+            if (!string.IsNullOrEmpty(fileName))
+            {
+                // Remove any invalid filename characters
+                var invalidChars = Path.GetInvalidFileNameChars();
+                foreach (var invalidChar in invalidChars)
+                {
+                    fileName = fileName.Replace(invalidChar, '_');
+                }
+
+                // Get directory from current path or use desktop
+                var directory = string.IsNullOrEmpty(OutputPath) 
+                    ? Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
+                    : Path.GetDirectoryName(OutputPath) ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+
+                var newPath = Path.Combine(directory, fileName);
+                
+                // Validate directory is writable
+                if (Directory.Exists(directory))
+                {
+                    try
+                    {
+                        // Test write access
+                        var testFile = Path.Combine(directory, Guid.NewGuid().ToString());
+                        File.WriteAllText(testFile, "test");
+                        File.Delete(testFile);
+                        
+                        errorMessage = null;
+                        await OutputPathChanged.InvokeAsync(newPath);
+                    }
+                    catch
+                    {
+                        errorMessage = "Cannot write to the selected directory";
+                    }
+                }
+                else
+                {
+                    errorMessage = "Selected directory does not exist";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error selecting location: {ex.Message}";
+        }
+    }
+
+    private async Task OnOutputPathChanged(string? value)
+    {
+        OutputPath = value;
+        await OutputPathChanged.InvokeAsync(value);
+    }
+}

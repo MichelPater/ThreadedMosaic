@@ -1,0 +1,413 @@
+@page "/create-mosaic"
+@rendermode InteractiveServer
+@inject IJSRuntime JSRuntime
+@inject IHttpClientFactory HttpClientFactory
+@inject ILogger<CreateMosaic> Logger
+
+<PageTitle>Create Mosaic - ThreadedMosaic</PageTitle>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2>Create Photo Mosaic</h2>
+            <p class="lead">Transform your photos into stunning mosaic artwork</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Mosaic Configuration</h5>
+                </div>
+                <div class="card-body">
+                    <EditForm Model="@mosaicRequest" OnValidSubmit="@CreateMosaicAsync">
+                        <DataAnnotationsValidator />
+                        
+                        <!-- Mosaic Type Selection -->
+                        <MosaicTypeSelector SelectedType="@selectedMosaicType" SelectedTypeChanged="@OnMosaicTypeChanged" />
+                        
+                        <!-- Master Image Upload -->
+                        <FileUploadComponent Label="Master Image" 
+                                           Accept="image/*" 
+                                           SelectedFile="@masterImageFile"
+                                           SelectedFileChanged="@((file) => masterImageFile = file)"
+                                           SelectedPath="@mosaicRequest.MasterImagePath"
+                                           SelectedPathChanged="@((path) => mosaicRequest.MasterImagePath = path)" />
+                        
+                        <!-- Seed Images Directory -->
+                        <SeedFolderComponent SelectedDirectory="@mosaicRequest.SeedImagesDirectory" SelectedDirectoryChanged="@((dir) => mosaicRequest.SeedImagesDirectory = dir)" />
+                        
+                        <!-- Output Location -->
+                        <OutputLocationComponent OutputPath="@mosaicRequest.OutputPath" OutputPathChanged="@((path) => mosaicRequest.OutputPath = path)" />
+                        
+                        <!-- Pixel Size Input -->
+                        <PixelSizeInput PixelSize="@mosaicRequest.PixelSize" PixelSizeChanged="@((size) => mosaicRequest.PixelSize = size)" />
+                        
+                        <!-- Advanced Options -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Output Format</label>
+                                    <select class="form-select" @bind="@mosaicRequest.OutputFormat">
+                                        <option value="Jpeg">JPEG</option>
+                                        <option value="Png">PNG</option>
+                                        <option value="Bmp">BMP</option>
+                                        <option value="Webp">WebP</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Quality (1-100)</label>
+                                    <input type="number" class="form-control" @bind="@mosaicRequest.Quality" min="1" max="100" />
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Type-specific options -->
+                        @if (selectedMosaicType == MosaicType.Color)
+                        {
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Color Tolerance (0-100)</label>
+                                        <input type="number" class="form-control" @bind="@colorRequest.ColorTolerance" min="0" max="100" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Transparency Intensity (0-100)</label>
+                                        <input type="number" class="form-control" @bind="@colorRequest.TransparencyIntensity" min="0" max="100" />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (selectedMosaicType == MosaicType.Hue)
+                        {
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Hue Tolerance (0-360)</label>
+                                        <input type="number" class="form-control" @bind="@hueRequest.HueTolerance" min="0" max="360" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Saturation Weight (0-100)</label>
+                                        <input type="number" class="form-control" @bind="@hueRequest.SaturationWeight" min="0" max="100" />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label class="form-label">Brightness Weight (0-100)</label>
+                                        <input type="number" class="form-control" @bind="@hueRequest.BrightnessWeight" min="0" max="100" />
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        
+                        @if (selectedMosaicType == MosaicType.Photo)
+                        {
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Similarity Threshold (0-100)</label>
+                                        <input type="number" class="form-control" @bind="@photoRequest.SimilarityThreshold" min="0" max="100" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Max Image Reuse</label>
+                                        <input type="number" class="form-control" @bind="@photoRequest.MaxImageReuse" min="1" max="100" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3 form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="@photoRequest.AvoidImageRepetition">
+                                        <label class="form-check-label">Avoid Image Repetition</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3 form-check">
+                                        <input class="form-check-input" type="checkbox" @bind="@photoRequest.UseEdgeDetection">
+                                        <label class="form-check-label">Use Edge Detection</label>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        
+                        <ValidationSummary class="text-danger" />
+                        
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <button type="button" class="btn btn-secondary me-md-2" @onclick="@ResetForm">Reset</button>
+                            <button type="submit" class="btn btn-primary" disabled="@isProcessing">
+                                @if (isProcessing)
+                                {
+                                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                    <text>Creating...</text>
+                                }
+                                else
+                                {
+                                    <text>Create Mosaic</text>
+                                }
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <!-- Progress Display -->
+            <ProgressDisplay @ref="@progressDisplay" />
+            
+            <!-- Preview Panel -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0">Preview</h6>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(masterImageFile?.Name))
+                    {
+                        <div class="mb-3">
+                            <small class="text-muted">Master Image:</small><br>
+                            <strong>@masterImageFile.Name</strong>
+                        </div>
+                    }
+                    
+                    @if (!string.IsNullOrEmpty(mosaicRequest.SeedImagesDirectory))
+                    {
+                        <div class="mb-3">
+                            <small class="text-muted">Seed Images:</small><br>
+                            <strong>@System.IO.Path.GetFileName(mosaicRequest.SeedImagesDirectory)</strong>
+                        </div>
+                    }
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Type:</small><br>
+                        <strong>@selectedMosaicType</strong>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">Tile Size:</small><br>
+                        <strong>@mosaicRequest.PixelSize px</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    
+    // Form models
+    private MosaicRequestBase mosaicRequest = new ColorMosaicRequest();
+    private ColorMosaicRequest colorRequest = new();
+    private HueMosaicRequest hueRequest = new();
+    private PhotoMosaicRequest photoRequest = new();
+    
+    // UI state
+    private MosaicType selectedMosaicType = MosaicType.Color;
+    private IBrowserFile? masterImageFile;
+    private bool isProcessing = false;
+    private ProgressDisplay? progressDisplay;
+    
+    // HTTP client
+    private HttpClient httpClient = default!;
+
+    protected override void OnInitialized()
+    {
+        httpClient = HttpClientFactory.CreateClient("ThreadedMosaicApi");
+        
+        // Initialize requests with default values
+        colorRequest = new ColorMosaicRequest
+        {
+            PixelSize = 16,
+            OutputFormat = ThreadedMosaic.Core.Models.ImageFormat.Jpeg,
+            Quality = 85,
+            ColorTolerance = 10,
+            TransparencyIntensity = 0
+        };
+
+        hueRequest = new HueMosaicRequest
+        {
+            PixelSize = 16,
+            OutputFormat = ThreadedMosaic.Core.Models.ImageFormat.Jpeg,
+            Quality = 85,
+            HueTolerance = 15.0,
+            SaturationWeight = 50,
+            BrightnessWeight = 50
+        };
+
+        photoRequest = new PhotoMosaicRequest
+        {
+            PixelSize = 16,
+            OutputFormat = ThreadedMosaic.Core.Models.ImageFormat.Jpeg,
+            Quality = 85,
+            SimilarityThreshold = 70,
+            MaxImageReuse = 5,
+            AvoidImageRepetition = true,
+            UseEdgeDetection = false
+        };
+
+        // Set initial request
+        mosaicRequest = colorRequest;
+    }
+
+    private void OnMosaicTypeChanged(MosaicType newType)
+    {
+        selectedMosaicType = newType;
+        
+        // Update the active request based on type
+        mosaicRequest = newType switch
+        {
+            MosaicType.Color => colorRequest,
+            MosaicType.Hue => hueRequest,
+            MosaicType.Photo => photoRequest,
+            _ => colorRequest
+        };
+        
+        StateHasChanged();
+    }
+
+    private async Task CreateMosaicAsync()
+    {
+        if (masterImageFile == null)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please select a master image");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(mosaicRequest.SeedImagesDirectory))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please select a seed images directory");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(mosaicRequest.OutputPath))
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please specify an output path");
+            return;
+        }
+
+        isProcessing = true;
+        var processingId = Guid.NewGuid().ToString();
+
+        try
+        {
+            // Start progress tracking
+            if (progressDisplay != null)
+            {
+                await progressDisplay.StartProcessing(processingId);
+            }
+
+            // First, upload the master image
+            var masterImagePath = await UploadMasterImageAsync();
+            if (string.IsNullOrEmpty(masterImagePath))
+            {
+                throw new Exception("Failed to upload master image");
+            }
+
+            // Update request with uploaded image path
+            mosaicRequest.MasterImagePath = masterImagePath;
+
+            // Send mosaic creation request based on type
+            var response = selectedMosaicType switch
+            {
+                MosaicType.Color => await httpClient.PostAsJsonAsync("/api/mosaic/color", colorRequest),
+                MosaicType.Hue => await httpClient.PostAsJsonAsync("/api/mosaic/hue", hueRequest),
+                MosaicType.Photo => await httpClient.PostAsJsonAsync("/api/mosaic/photo", photoRequest),
+                _ => throw new ArgumentException("Invalid mosaic type")
+            };
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<MosaicResult>();
+                Logger.LogInformation("Mosaic creation started: {MosaicId}", result?.MosaicId);
+                
+                await JSRuntime.InvokeVoidAsync("alert", "Mosaic creation started successfully!");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                throw new Exception($"API Error: {response.StatusCode} - {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error creating mosaic");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error creating mosaic: {ex.Message}");
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task<string?> UploadMasterImageAsync()
+    {
+        if (masterImageFile == null) return null;
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            using var fileStream = masterImageFile.OpenReadStream(maxAllowedSize: 50 * 1024 * 1024);
+            using var streamContent = new StreamContent(fileStream);
+            
+            streamContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(masterImageFile.ContentType);
+            content.Add(streamContent, "files", masterImageFile.Name);
+            content.Add(new StringContent("master"), "type");
+
+            var response = await httpClient.PostAsync("/api/files/upload", content);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<FileUploadResult>();
+                return result?.Files?.FirstOrDefault()?.FilePath;
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Logger.LogError("File upload failed: {Error}", error);
+                return null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error uploading master image");
+            return null;
+        }
+    }
+
+    private void ResetForm()
+    {
+        masterImageFile = null;
+        selectedMosaicType = MosaicType.Color;
+        
+        // Reset all request objects
+        colorRequest = new ColorMosaicRequest { PixelSize = 16, OutputFormat = ThreadedMosaic.Core.Models.ImageFormat.Jpeg, Quality = 85 };
+        hueRequest = new HueMosaicRequest { PixelSize = 16, OutputFormat = ThreadedMosaic.Core.Models.ImageFormat.Jpeg, Quality = 85 };
+        photoRequest = new PhotoMosaicRequest { PixelSize = 16, OutputFormat = ThreadedMosaic.Core.Models.ImageFormat.Jpeg, Quality = 85 };
+        
+        mosaicRequest = colorRequest;
+        isProcessing = false;
+        
+        StateHasChanged();
+    }
+
+    // Helper classes for API responses
+    private class FileUploadResult
+    {
+        public List<UploadedFile>? Files { get; set; }
+    }
+
+    private class UploadedFile
+    {
+        public string? FilePath { get; set; }
+        public string? FileName { get; set; }
+    }
+}

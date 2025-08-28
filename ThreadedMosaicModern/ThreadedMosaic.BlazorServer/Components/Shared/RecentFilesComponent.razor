@@ -1,0 +1,165 @@
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h6 class="mb-0">
+            <i class="bi bi-clock-history"></i> Recent @ItemType
+        </h6>
+        @if (RecentItems.Any())
+        {
+            <button class="btn btn-outline-secondary btn-sm" @onclick="@ClearHistory">
+                <i class="bi bi-trash"></i> Clear
+            </button>
+        }
+    </div>
+    <div class="card-body">
+        @if (RecentItems.Any())
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var item in RecentItems.Take(MaxItems))
+                {
+                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center px-0">
+                        <div class="flex-grow-1 cursor-pointer" @onclick="@(() => SelectItem(item))">
+                            <div class="fw-medium">@GetDisplayName(item)</div>
+                            <small class="text-muted">@GetDisplayPath(item)</small>
+                        </div>
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary btn-sm" @onclick="@(() => SelectItem(item))">
+                                <i class="bi bi-check"></i>
+                            </button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="@(() => RemoveItem(item))">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+            
+            @if (RecentItems.Count > MaxItems)
+            {
+                <div class="text-center mt-2">
+                    <small class="text-muted">+@(RecentItems.Count - MaxItems) more items</small>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center text-muted py-3">
+                <i class="bi bi-clock" style="font-size: 1.5rem;"></i>
+                <div class="mt-2">No recent @ItemType.ToLower()</div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string ItemType { get; set; } = "Files";
+    [Parameter] public int MaxItems { get; set; } = 5;
+    [Parameter] public EventCallback<string> OnItemSelected { get; set; }
+
+    private List<RecentItem> RecentItems = new();
+    private const string StorageKey = "ThreadedMosaic_RecentItems";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRecentItems();
+    }
+
+    public async Task AddRecentItem(string path, string? displayName = null)
+    {
+        var item = new RecentItem
+        {
+            Path = path,
+            DisplayName = displayName ?? System.IO.Path.GetFileName(path) ?? path,
+            LastUsed = DateTime.Now
+        };
+
+        // Remove existing item if present
+        RecentItems.RemoveAll(x => x.Path.Equals(path, StringComparison.OrdinalIgnoreCase));
+        
+        // Add to beginning
+        RecentItems.Insert(0, item);
+        
+        // Limit total items
+        if (RecentItems.Count > 20)
+        {
+            RecentItems = RecentItems.Take(20).ToList();
+        }
+
+        await SaveRecentItems();
+        StateHasChanged();
+    }
+
+    private async Task SelectItem(RecentItem item)
+    {
+        await AddRecentItem(item.Path, item.DisplayName); // Move to top
+        await OnItemSelected.InvokeAsync(item.Path);
+    }
+
+    private async Task RemoveItem(RecentItem item)
+    {
+        RecentItems.Remove(item);
+        await SaveRecentItems();
+        StateHasChanged();
+    }
+
+    private async Task ClearHistory()
+    {
+        RecentItems.Clear();
+        await SaveRecentItems();
+        StateHasChanged();
+    }
+
+    private string GetDisplayName(RecentItem item)
+    {
+        return item.DisplayName;
+    }
+
+    private string GetDisplayPath(RecentItem item)
+    {
+        var directory = System.IO.Path.GetDirectoryName(item.Path);
+        return string.IsNullOrEmpty(directory) ? item.Path : $"...{directory[Math.Max(0, directory.Length - 40)..]}";
+    }
+
+    private async Task LoadRecentItems()
+    {
+        try
+        {
+            // In a real implementation, you'd use localStorage or a database
+            // For now, we'll start with an empty list
+            RecentItems = new List<RecentItem>();
+        }
+        catch
+        {
+            RecentItems = new List<RecentItem>();
+        }
+    }
+
+    private async Task SaveRecentItems()
+    {
+        try
+        {
+            // In a real implementation, you'd save to localStorage or a database
+            // For now, we'll just keep them in memory
+        }
+        catch
+        {
+            // Ignore save errors
+        }
+    }
+
+    private class RecentItem
+    {
+        public string Path { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
+        public DateTime LastUsed { get; set; }
+    }
+}
+
+<style>
+    .cursor-pointer {
+        cursor: pointer;
+    }
+    
+    .list-group-item:hover {
+        background-color: var(--bs-gray-100);
+    }
+</style>

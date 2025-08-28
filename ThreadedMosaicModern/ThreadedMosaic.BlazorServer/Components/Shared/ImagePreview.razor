@@ -1,0 +1,95 @@
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">
+            <i class="bi bi-eye"></i> Image Preview
+        </h6>
+    </div>
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(ImagePath))
+        {
+            <div class="text-center">
+                <img src="@GetImageUrl()" alt="Preview" class="img-fluid preview-image" 
+                     style="max-height: 300px; border-radius: 4px;" />
+                <div class="mt-2">
+                    <small class="text-muted">@GetImageInfo()</small>
+                </div>
+                @if (ShowActions)
+                {
+                    <div class="mt-3">
+                        <div class="btn-group">
+                            <button class="btn btn-outline-primary btn-sm" @onclick="@ViewFullSize">
+                                <i class="bi bi-arrows-fullscreen"></i> Full Size
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="@OpenLocation">
+                                <i class="bi bi-folder-open"></i> Open Location
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-image" style="font-size: 2rem;"></i>
+                <div class="mt-2">No preview available</div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? ImagePath { get; set; }
+    [Parameter] public bool ShowActions { get; set; } = true;
+    [Parameter] public EventCallback OnViewFullSize { get; set; }
+    [Parameter] public EventCallback OnOpenLocation { get; set; }
+
+    private string GetImageUrl()
+    {
+        if (string.IsNullOrEmpty(ImagePath))
+            return string.Empty;
+            
+        // For development, create a file URL
+        return $"file://{ImagePath}";
+    }
+
+    private string GetImageInfo()
+    {
+        if (string.IsNullOrEmpty(ImagePath))
+            return string.Empty;
+
+        try
+        {
+            var fileInfo = new System.IO.FileInfo(ImagePath);
+            if (fileInfo.Exists)
+            {
+                var sizeKb = fileInfo.Length / 1024;
+                return $"{System.IO.Path.GetFileName(ImagePath)} ({sizeKb:N0} KB)";
+            }
+        }
+        catch { }
+        
+        return System.IO.Path.GetFileName(ImagePath) ?? string.Empty;
+    }
+
+    private async Task ViewFullSize()
+    {
+        await OnViewFullSize.InvokeAsync();
+    }
+
+    private async Task OpenLocation()
+    {
+        await OnOpenLocation.InvokeAsync();
+    }
+}
+
+<style>
+    .preview-image {
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
+    
+    .preview-image:hover {
+        transform: scale(1.02);
+    }
+</style>

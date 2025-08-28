@@ -1,0 +1,297 @@
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.AspNetCore.Components
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+@inject IJSRuntime JSRuntime
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">
+            <i class="bi @GetStatusIcon()"></i> Processing Status
+        </h6>
+    </div>
+    <div class="card-body">
+        @if (IsProcessing)
+        {
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-muted">@CurrentStatus</small>
+                    <small class="text-muted">@ProgressPercentage%</small>
+                </div>
+                <div class="progress">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" 
+                         style="width: @ProgressPercentage%"
+                         aria-valuenow="@ProgressPercentage" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+            </div>
+
+            <div class="row text-center">
+                <div class="col-4">
+                    <div class="small text-muted">Processed</div>
+                    <div class="h6">@ProcessedItems</div>
+                </div>
+                <div class="col-4">
+                    <div class="small text-muted">Total</div>
+                    <div class="h6">@TotalItems</div>
+                </div>
+                <div class="col-4">
+                    <div class="small text-muted">Elapsed</div>
+                    <div class="h6">@ElapsedTime</div>
+                </div>
+            </div>
+
+            @if (EstimatedTimeRemaining.HasValue)
+            {
+                <div class="text-center mt-2">
+                    <small class="text-muted">
+                        Est. remaining: @FormatTimeSpan(EstimatedTimeRemaining.Value)
+                    </small>
+                </div>
+            }
+
+            <div class="d-grid mt-3">
+                <button class="btn btn-outline-danger btn-sm" @onclick="@CancelProcessing">
+                    <i class="bi bi-stop-circle"></i> Cancel Processing
+                </button>
+            </div>
+        }
+        else if (HasCompleted)
+        {
+            <div class="text-center">
+                @if (IsSuccess)
+                {
+                    <div class="text-success mb-2">
+                        <i class="bi bi-check-circle-fill" style="font-size: 2rem;"></i>
+                        <div class="mt-2">
+                            <strong>Mosaic Created Successfully!</strong>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(OutputPath))
+                    {
+                        <div class="mb-2">
+                            <small class="text-muted">Saved to:</small><br>
+                            <code class="small">@OutputPath</code>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button class="btn btn-primary btn-sm" @onclick="@OpenOutputLocation">
+                                <i class="bi bi-folder-open"></i> Open Location
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="@ViewResult">
+                                <i class="bi bi-eye"></i> View Result
+                            </button>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-danger mb-2">
+                        <i class="bi bi-exclamation-circle-fill" style="font-size: 2rem;"></i>
+                        <div class="mt-2">
+                            <strong>Processing Failed</strong>
+                        </div>
+                    </div>
+                    @if (!string.IsNullOrEmpty(ErrorMessage))
+                    {
+                        <div class="alert alert-danger">
+                            <small>@ErrorMessage</small>
+                        </div>
+                    }
+                    <div class="d-grid">
+                        <button class="btn btn-outline-primary btn-sm" @onclick="@Reset">
+                            <i class="bi bi-arrow-clockwise"></i> Try Again
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center text-muted">
+                <i class="bi bi-hourglass" style="font-size: 2rem;"></i>
+                <div class="mt-2">Ready to create mosaic</div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string? ProcessingId { get; set; }
+    [Parameter] public EventCallback OnCancelRequested { get; set; }
+
+    private HubConnection? hubConnection;
+    private bool IsProcessing = false;
+    private bool HasCompleted = false;
+    private bool IsSuccess = false;
+    private string CurrentStatus = "";
+    private int ProgressPercentage = 0;
+    private int ProcessedItems = 0;
+    private int TotalItems = 0;
+    private string? ErrorMessage;
+    private string? OutputPath;
+    private DateTime? ProcessingStartTime;
+
+    private TimeSpan ElapsedTime => ProcessingStartTime.HasValue ? DateTime.Now - ProcessingStartTime.Value : TimeSpan.Zero;
+    private TimeSpan? EstimatedTimeRemaining
+    {
+        get
+        {
+            if (!ProcessingStartTime.HasValue || ProcessedItems == 0 || TotalItems == 0)
+                return null;
+
+            var elapsed = ElapsedTime;
+            var rate = ProcessedItems / elapsed.TotalSeconds;
+            var remaining = TotalItems - ProcessedItems;
+            
+            if (rate > 0)
+                return TimeSpan.FromSeconds(remaining / rate);
+                
+            return null;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/progresshub"))
+            .Build();
+
+        hubConnection.On<string>("UpdateStatus", (status) =>
+        {
+            CurrentStatus = status;
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<int, int>("UpdateProgress", (processed, total) =>
+        {
+            ProcessedItems = processed;
+            TotalItems = total;
+            ProgressPercentage = total > 0 ? (int)((double)processed / total * 100) : 0;
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<string>("ProcessingCompleted", (outputPath) =>
+        {
+            IsProcessing = false;
+            HasCompleted = true;
+            IsSuccess = true;
+            OutputPath = outputPath;
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<string>("ProcessingFailed", (error) =>
+        {
+            IsProcessing = false;
+            HasCompleted = true;
+            IsSuccess = false;
+            ErrorMessage = error;
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+    }
+
+    public async Task StartProcessing(string processingId)
+    {
+        ProcessingId = processingId;
+        IsProcessing = true;
+        HasCompleted = false;
+        IsSuccess = false;
+        CurrentStatus = "Initializing...";
+        ProgressPercentage = 0;
+        ProcessedItems = 0;
+        TotalItems = 0;
+        ErrorMessage = null;
+        OutputPath = null;
+        ProcessingStartTime = DateTime.Now;
+
+        if (hubConnection is not null)
+        {
+            await hubConnection.SendAsync("JoinGroup", processingId);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task CancelProcessing()
+    {
+        if (IsProcessing)
+        {
+            await OnCancelRequested.InvokeAsync();
+            Reset();
+        }
+    }
+
+    private async Task OpenOutputLocation()
+    {
+        if (!string.IsNullOrEmpty(OutputPath))
+        {
+            var directory = Path.GetDirectoryName(OutputPath);
+            if (!string.IsNullOrEmpty(directory))
+            {
+                await JSRuntime.InvokeVoidAsync("open", $"file://{directory}");
+            }
+        }
+    }
+
+    private async Task ViewResult()
+    {
+        if (!string.IsNullOrEmpty(OutputPath))
+        {
+            await JSRuntime.InvokeVoidAsync("open", $"file://{OutputPath}");
+        }
+    }
+
+    private void Reset()
+    {
+        IsProcessing = false;
+        HasCompleted = false;
+        IsSuccess = false;
+        CurrentStatus = "";
+        ProgressPercentage = 0;
+        ProcessedItems = 0;
+        TotalItems = 0;
+        ErrorMessage = null;
+        OutputPath = null;
+        ProcessingStartTime = null;
+        StateHasChanged();
+    }
+
+    private string GetStatusIcon()
+    {
+        if (IsProcessing) return "bi-gear-fill spin";
+        if (HasCompleted && IsSuccess) return "bi-check-circle-fill text-success";
+        if (HasCompleted && !IsSuccess) return "bi-exclamation-circle-fill text-danger";
+        return "bi-hourglass";
+    }
+
+    private string FormatTimeSpan(TimeSpan timeSpan)
+    {
+        if (timeSpan.TotalHours >= 1)
+            return $"{timeSpan.Hours:00}:{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
+        else
+            return $"{timeSpan.Minutes:00}:{timeSpan.Seconds:00}";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
+
+<style>
+    .spin {
+        animation: spin 1s linear infinite;
+    }
+    
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>

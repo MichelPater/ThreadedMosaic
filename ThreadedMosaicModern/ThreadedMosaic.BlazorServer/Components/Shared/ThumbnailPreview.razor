@@ -1,0 +1,136 @@
+<div class="thumbnail-container">
+    @if (Images != null && Images.Any())
+    {
+        <div class="row g-2">
+            @foreach (var image in Images.Take(MaxDisplayCount))
+            {
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="thumbnail-item">
+                        <div class="thumbnail-wrapper">
+                            <img src="@GetThumbnailUrl(image)" alt="@GetImageName(image)" 
+                                 class="thumbnail-image" @onclick="@(() => SelectImage(image))" />
+                            @if (SelectedImage == image)
+                            {
+                                <div class="thumbnail-selected">
+                                    <i class="bi bi-check-circle-fill text-primary"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="thumbnail-label">
+                            <small class="text-muted">@GetImageName(image)</small>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+        
+        @if (Images.Count() > MaxDisplayCount)
+        {
+            <div class="text-center mt-3">
+                <button class="btn btn-outline-secondary btn-sm" @onclick="@ShowMore">
+                    <i class="bi bi-plus-circle"></i> Show More (+@(Images.Count() - MaxDisplayCount))
+                </button>
+            </div>
+        }
+        
+        <div class="mt-2">
+            <small class="text-muted">@Images.Count() images total</small>
+        </div>
+    }
+    else
+    {
+        <div class="text-center text-muted py-3">
+            <i class="bi bi-images" style="font-size: 1.5rem;"></i>
+            <div class="mt-2">@EmptyMessage</div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public IEnumerable<string>? Images { get; set; }
+    [Parameter] public string? SelectedImage { get; set; }
+    [Parameter] public EventCallback<string> SelectedImageChanged { get; set; }
+    [Parameter] public int MaxDisplayCount { get; set; } = 8;
+    [Parameter] public string EmptyMessage { get; set; } = "No images to display";
+
+    private string GetThumbnailUrl(string imagePath)
+    {
+        // In a real implementation, you'd generate thumbnails
+        // For now, return the file URL
+        return $"file://{imagePath}";
+    }
+
+    private string GetImageName(string imagePath)
+    {
+        return System.IO.Path.GetFileName(imagePath) ?? "Unknown";
+    }
+
+    private async Task SelectImage(string imagePath)
+    {
+        SelectedImage = imagePath;
+        await SelectedImageChanged.InvokeAsync(imagePath);
+    }
+
+    private void ShowMore()
+    {
+        MaxDisplayCount += 8;
+        StateHasChanged();
+    }
+}
+
+<style>
+    .thumbnail-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+
+    .thumbnail-item {
+        margin-bottom: 0.5rem;
+    }
+
+    .thumbnail-wrapper {
+        position: relative;
+        aspect-ratio: 1;
+        overflow: hidden;
+        border-radius: 4px;
+        border: 2px solid transparent;
+        transition: border-color 0.2s ease;
+    }
+
+    .thumbnail-wrapper:hover {
+        border-color: var(--bs-primary);
+    }
+
+    .thumbnail-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        cursor: pointer;
+        transition: transform 0.2s ease;
+    }
+
+    .thumbnail-image:hover {
+        transform: scale(1.1);
+    }
+
+    .thumbnail-selected {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        background: rgba(255,255,255,0.9);
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .thumbnail-label {
+        text-align: center;
+        padding: 0.25rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+</style>

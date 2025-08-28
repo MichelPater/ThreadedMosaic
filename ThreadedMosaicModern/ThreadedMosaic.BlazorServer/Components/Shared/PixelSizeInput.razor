@@ -1,0 +1,70 @@
+<div class="mb-3">
+    <label class="form-label">Tile Size (pixels)</label>
+    <div class="row align-items-center">
+        <div class="col-md-8">
+            <input type="range" class="form-range" @bind="@PixelSize" @bind:event="oninput" 
+                   min="4" max="128" step="4" id="pixelSizeRange" />
+        </div>
+        <div class="col-md-4">
+            <div class="input-group">
+                <input type="number" class="form-control" @bind="@PixelSize" min="4" max="128" step="4" />
+                <span class="input-group-text">px</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Preset buttons -->
+    <div class="mt-2">
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn @(PixelSize == 8 ? "btn-primary" : "btn-outline-secondary")" 
+                    @onclick="@(() => SetPixelSize(8))">8px</button>
+            <button type="button" class="btn @(PixelSize == 16 ? "btn-primary" : "btn-outline-secondary")" 
+                    @onclick="@(() => SetPixelSize(16))">16px</button>
+            <button type="button" class="btn @(PixelSize == 24 ? "btn-primary" : "btn-outline-secondary")" 
+                    @onclick="@(() => SetPixelSize(24))">24px</button>
+            <button type="button" class="btn @(PixelSize == 32 ? "btn-primary" : "btn-outline-secondary")" 
+                    @onclick="@(() => SetPixelSize(32))">32px</button>
+            <button type="button" class="btn @(PixelSize == 48 ? "btn-primary" : "btn-outline-secondary")" 
+                    @onclick="@(() => SetPixelSize(48))">48px</button>
+            <button type="button" class="btn @(PixelSize == 64 ? "btn-primary" : "btn-outline-secondary")" 
+                    @onclick="@(() => SetPixelSize(64))">64px</button>
+        </div>
+    </div>
+    
+    <div class="form-text">
+        <div class="d-flex justify-content-between">
+            <span>Smaller tiles = More detail, longer processing</span>
+            <span>Larger tiles = Faster processing, less detail</span>
+        </div>
+        <div class="mt-1">
+            <small class="text-muted">
+                Current setting: <strong>@PixelSize px tiles</strong> - 
+                @GetProcessingTimeEstimate(PixelSize) processing time
+            </small>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int PixelSize { get; set; } = 16;
+    [Parameter] public EventCallback<int> PixelSizeChanged { get; set; }
+
+    private async Task SetPixelSize(int size)
+    {
+        PixelSize = size;
+        await PixelSizeChanged.InvokeAsync(size);
+    }
+
+    private string GetProcessingTimeEstimate(int pixelSize)
+    {
+        return pixelSize switch
+        {
+            <= 8 => "Very slow",
+            <= 16 => "Slow",
+            <= 24 => "Moderate",
+            <= 32 => "Fast",
+            <= 48 => "Very fast",
+            _ => "Extremely fast"
+        };
+    }
+}

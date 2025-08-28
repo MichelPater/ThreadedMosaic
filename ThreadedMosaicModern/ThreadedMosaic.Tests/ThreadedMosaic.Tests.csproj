@@ -12,6 +12,15 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="FluentAssertions" Version="6.12.1" />
+    <PackageReference Include="Moq" Version="4.20.72" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="9.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.TestHost" Version="9.0.0" />
+    <PackageReference Include="bunit" Version="1.29.6" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.14.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +29,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ThreadedMosaic.Core\ThreadedMosaic.Core.csproj" />
+    <ProjectReference Include="..\ThreadedMosaic.Api\ThreadedMosaic.Api.csproj" />
+    <ProjectReference Include="..\ThreadedMosaic.BlazorServer\ThreadedMosaic.BlazorServer.csproj" />
   </ItemGroup>
 
 </Project>

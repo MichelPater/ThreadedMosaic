@@ -8,6 +8,7 @@ using ThreadedMosaic.Core.DTOs;
 using ThreadedMosaic.Core.Models;
 using ThreadedMosaic.Core.Services;
 using ThreadedMosaic.Core.Interfaces;
+using ThreadedMosaic.Core.Data.Repositories;
 using System.Threading;
 
 namespace ThreadedMosaic.Tests.Api
@@ -17,31 +18,28 @@ namespace ThreadedMosaic.Tests.Api
     /// </summary>
     public class MosaicControllerTests : IDisposable
     {
-        private readonly Mock<IServiceProvider> _mockServiceProvider;
+        private readonly Mock<IColorMosaicService> _mockColorService;
+        private readonly Mock<IHueMosaicService> _mockHueService;
+        private readonly Mock<IPhotoMosaicService> _mockPhotoService;
+        private readonly Mock<IMosaicProcessingResultRepository> _mockMosaicResultRepository;
         private readonly Mock<ILogger<MosaicController>> _mockLogger;
-        private readonly Mock<ColorMosaicService> _mockColorService;
-        private readonly Mock<HueMosaicService> _mockHueService;
-        private readonly Mock<PhotoMosaicService> _mockPhotoService;
         private readonly MosaicController _controller;
         private readonly string _testDirectory;
 
         public MosaicControllerTests()
         {
-            _mockServiceProvider = new Mock<IServiceProvider>();
+            _mockColorService = new Mock<IColorMosaicService>();
+            _mockHueService = new Mock<IHueMosaicService>();
+            _mockPhotoService = new Mock<IPhotoMosaicService>();
+            _mockMosaicResultRepository = new Mock<IMosaicProcessingResultRepository>();
             _mockLogger = new Mock<ILogger<MosaicController>>();
-            _mockColorService = new Mock<ColorMosaicService>();
-            _mockHueService = new Mock<HueMosaicService>();
-            _mockPhotoService = new Mock<PhotoMosaicService>();
 
-            // Setup service provider to return mocked services
-            _mockServiceProvider.Setup(sp => sp.GetRequiredService<ColorMosaicService>())
-                               .Returns(_mockColorService.Object);
-            _mockServiceProvider.Setup(sp => sp.GetRequiredService<HueMosaicService>())
-                               .Returns(_mockHueService.Object);
-            _mockServiceProvider.Setup(sp => sp.GetRequiredService<PhotoMosaicService>())
-                               .Returns(_mockPhotoService.Object);
-
-            _controller = new MosaicController(_mockServiceProvider.Object, _mockLogger.Object);
+            _controller = new MosaicController(
+                _mockColorService.Object, 
+                _mockHueService.Object, 
+                _mockPhotoService.Object, 
+                _mockMosaicResultRepository.Object,
+                _mockLogger.Object);
 
             // Create test directory
             _testDirectory = Path.Combine(Path.GetTempPath(), "ThreadedMosaicApiTests", Guid.NewGuid().ToString());
@@ -228,19 +226,46 @@ namespace ThreadedMosaic.Tests.Api
         }
 
         [Fact]
-        public void Constructor_NullServiceProvider_ThrowsArgumentNullException()
+        public void Constructor_NullColorMosaicService_ThrowsArgumentNullException()
         {
             // Act & Assert
-            FluentActions.Invoking(() => new MosaicController(null!, _mockLogger.Object))
+            FluentActions.Invoking(() => new MosaicController(null!, _mockHueService.Object, _mockPhotoService.Object, _mockMosaicResultRepository.Object, _mockLogger.Object))
                          .Should().Throw<ArgumentNullException>()
-                         .WithParameterName("serviceProvider");
+                         .WithParameterName("colorMosaicService");
+        }
+
+        [Fact]
+        public void Constructor_NullHueMosaicService_ThrowsArgumentNullException()
+        {
+            // Act & Assert
+            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, null!, _mockPhotoService.Object, _mockMosaicResultRepository.Object, _mockLogger.Object))
+                         .Should().Throw<ArgumentNullException>()
+                         .WithParameterName("hueMosaicService");
+        }
+
+        [Fact]
+        public void Constructor_NullPhotoMosaicService_ThrowsArgumentNullException()
+        {
+            // Act & Assert
+            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, null!, _mockMosaicResultRepository.Object, _mockLogger.Object))
+                         .Should().Throw<ArgumentNullException>()
+                         .WithParameterName("photoMosaicService");
+        }
+
+        [Fact]
+        public void Constructor_NullMosaicResultRepository_ThrowsArgumentNullException()
+        {
+            // Act & Assert
+            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, _mockPhotoService.Object, null!, _mockLogger.Object))
+                         .Should().Throw<ArgumentNullException>()
+                         .WithParameterName("mosaicResultRepository");
         }
 
         [Fact]
         public void Constructor_NullLogger_ThrowsArgumentNullException()
         {
             // Act & Assert
-            FluentActions.Invoking(() => new MosaicController(_mockServiceProvider.Object, null!))
+            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, _mockPhotoService.Object, _mockMosaicResultRepository.Object, null!))
                          .Should().Throw<ArgumentNullException>()
                          .WithParameterName("logger");
         }

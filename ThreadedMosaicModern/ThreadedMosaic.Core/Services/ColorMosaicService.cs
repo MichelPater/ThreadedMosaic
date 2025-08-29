@@ -14,7 +14,7 @@ namespace ThreadedMosaic.Core.Services
     /// Color-based mosaic creation service
     /// Creates mosaics by matching colors directly
     /// </summary>
-    public class ColorMosaicService : MosaicServiceBase, IMosaicService
+    public class ColorMosaicService : MosaicServiceBase, IMosaicService, IColorMosaicService
     {
         public ColorMosaicService(
             IImageProcessingService imageProcessingService,

@@ -14,7 +14,7 @@ namespace ThreadedMosaic.Core.Services
     /// Hue-based mosaic creation service
     /// Creates mosaics by matching hue values with transparency overlays
     /// </summary>
-    public class HueMosaicService : MosaicServiceBase, IMosaicService
+    public class HueMosaicService : MosaicServiceBase, IMosaicService, IHueMosaicService
     {
         public HueMosaicService(
             IImageProcessingService imageProcessingService,

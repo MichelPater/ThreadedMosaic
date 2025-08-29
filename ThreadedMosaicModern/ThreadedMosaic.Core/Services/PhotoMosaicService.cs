@@ -14,7 +14,7 @@ namespace ThreadedMosaic.Core.Services
     /// Photo-based mosaic creation service
     /// Creates mosaics using actual photos matched to color regions with optional repetition avoidance
     /// </summary>
-    public class PhotoMosaicService : MosaicServiceBase, IMosaicService
+    public class PhotoMosaicService : MosaicServiceBase, IMosaicService, IPhotoMosaicService
     {
         private readonly Dictionary<string, int> _imageUsageCount = new();
         private readonly HashSet<string> _recentlyUsedImages = new();

@@ -37,8 +37,11 @@ namespace ThreadedMosaic.Core.Extensions
 
             // Register mosaic services
             services.AddScoped<ColorMosaicService>();
+            services.AddScoped<IColorMosaicService>(provider => provider.GetRequiredService<ColorMosaicService>());
             services.AddScoped<HueMosaicService>();
+            services.AddScoped<IHueMosaicService>(provider => provider.GetRequiredService<HueMosaicService>());
             services.AddScoped<PhotoMosaicService>();
+            services.AddScoped<IPhotoMosaicService>(provider => provider.GetRequiredService<PhotoMosaicService>());
             services.AddScoped<IMosaicServiceFactory, MosaicServiceFactory>();
 
             // Register progress reporters
@@ -83,8 +86,11 @@ namespace ThreadedMosaic.Core.Extensions
 
             // Register mosaic services
             services.AddScoped<ColorMosaicService>();
+            services.AddScoped<IColorMosaicService>(provider => provider.GetRequiredService<ColorMosaicService>());
             services.AddScoped<HueMosaicService>();
+            services.AddScoped<IHueMosaicService>(provider => provider.GetRequiredService<HueMosaicService>());
             services.AddScoped<PhotoMosaicService>();
+            services.AddScoped<IPhotoMosaicService>(provider => provider.GetRequiredService<PhotoMosaicService>());
             services.AddScoped<IMosaicServiceFactory, MosaicServiceFactory>();
 
             // Register progress reporters

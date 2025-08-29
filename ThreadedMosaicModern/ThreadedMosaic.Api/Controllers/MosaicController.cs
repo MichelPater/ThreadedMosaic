@@ -5,6 +5,7 @@ using ThreadedMosaic.Core.DTOs;
 using ThreadedMosaic.Core.Interfaces;
 using ThreadedMosaic.Core.Models;
 using ThreadedMosaic.Core.Services;
+using ThreadedMosaic.Core.Data.Repositories;
 
 namespace ThreadedMosaic.Api.Controllers
 {
@@ -16,12 +17,23 @@ namespace ThreadedMosaic.Api.Controllers
     [SwaggerTag("Mosaic operations for creating color, hue, and photo-based mosaics")]
     public class MosaicController : ControllerBase
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IColorMosaicService _colorMosaicService;
+        private readonly IHueMosaicService _hueMosaicService;
+        private readonly IPhotoMosaicService _photoMosaicService;
+        private readonly IMosaicProcessingResultRepository _mosaicResultRepository;
         private readonly ILogger<MosaicController> _logger;
 
-        public MosaicController(IServiceProvider serviceProvider, ILogger<MosaicController> logger)
+        public MosaicController(
+            IColorMosaicService colorMosaicService,
+            IHueMosaicService hueMosaicService,
+            IPhotoMosaicService photoMosaicService,
+            IMosaicProcessingResultRepository mosaicResultRepository,
+            ILogger<MosaicController> logger)
         {
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
+            _colorMosaicService = colorMosaicService ?? throw new ArgumentNullException(nameof(colorMosaicService));
+            _hueMosaicService = hueMosaicService ?? throw new ArgumentNullException(nameof(hueMosaicService));
+            _photoMosaicService = photoMosaicService ?? throw new ArgumentNullException(nameof(photoMosaicService));
+            _mosaicResultRepository = mosaicResultRepository ?? throw new ArgumentNullException(nameof(mosaicResultRepository));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -44,8 +56,7 @@ namespace ThreadedMosaic.Api.Controllers
             {
                 _logger.LogInformation("Creating color mosaic for master image: {MasterImagePath}", request.MasterImagePath);
                 
-                var service = _serviceProvider.GetRequiredService<ColorMosaicService>();
-                var result = await service.CreateColorMosaicAsync(request, null, cancellationToken);
+                var result = await _colorMosaicService.CreateColorMosaicAsync(request, null, cancellationToken);
                 
                 _logger.LogInformation("Color mosaic creation completed with status: {Status}", result.Status);
                 return Ok(result);
@@ -81,8 +92,7 @@ namespace ThreadedMosaic.Api.Controllers
             {
                 _logger.LogInformation("Creating hue mosaic for master image: {MasterImagePath}", request.MasterImagePath);
                 
-                var service = _serviceProvider.GetRequiredService<HueMosaicService>();
-                var result = await service.CreateHueMosaicAsync(request, null, cancellationToken);
+                var result = await _hueMosaicService.CreateHueMosaicAsync(request, null, cancellationToken);
                 
                 _logger.LogInformation("Hue mosaic creation completed with status: {Status}", result.Status);
                 return Ok(result);
@@ -118,8 +128,7 @@ namespace ThreadedMosaic.Api.Controllers
             {
                 _logger.LogInformation("Creating photo mosaic for master image: {MasterImagePath}", request.MasterImagePath);
                 
-                var service = _serviceProvider.GetRequiredService<PhotoMosaicService>();
-                var result = await service.CreatePhotoMosaicAsync(request, null, cancellationToken);
+                var result = await _photoMosaicService.CreatePhotoMosaicAsync(request, null, cancellationToken);
                 
                 _logger.LogInformation("Photo mosaic creation completed with status: {Status}", result.Status);
                 return Ok(result);
@@ -145,18 +154,42 @@ namespace ThreadedMosaic.Api.Controllers
         [SwaggerOperation(Summary = "Get mosaic status", Description = "Gets the current processing status of a mosaic")]
         [SwaggerResponse(200, "Status retrieved successfully", typeof(object))]
         [SwaggerResponse(404, "Mosaic not found")]
-        public Task<ActionResult> GetMosaicStatus(Guid id)
+        public async Task<ActionResult> GetMosaicStatus(Guid id, CancellationToken cancellationToken = default)
         {
             try
             {
-                // TODO: Implement status tracking with a status store
                 _logger.LogInformation("Getting status for mosaic: {MosaicId}", id);
-                return Task.FromResult<ActionResult>(Ok(new { id, status = MosaicStatus.Unknown, message = "Status tracking not yet implemented" }));
+                
+                var mosaicResult = await _mosaicResultRepository.GetByIdAsync(id, cancellationToken);
+                
+                if (mosaicResult == null)
+                {
+                    _logger.LogWarning("Mosaic not found: {MosaicId}", id);
+                    return NotFound(new { error = "Mosaic not found", id });
+                }
+                
+                var status = new
+                {
+                    id = mosaicResult.Id,
+                    status = mosaicResult.Status,
+                    mosaicType = mosaicResult.MosaicType,
+                    createdAt = mosaicResult.CreatedAt,
+                    startedAt = mosaicResult.StartedAt,
+                    completedAt = mosaicResult.CompletedAt,
+                    processingTime = mosaicResult.ProcessingTime,
+                    outputPath = mosaicResult.OutputPath,
+                    errorMessage = mosaicResult.ErrorMessage,
+                    tilesProcessed = mosaicResult.TilesProcessed,
+                    totalTiles = mosaicResult.TotalTiles,
+                    processingPercentage = mosaicResult.ProcessingPercentage
+                };
+                
+                return Ok(status);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting mosaic status for ID: {MosaicId}", id);
-                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while getting mosaic status" }));
+                return StatusCode(500, new { error = "An error occurred while getting mosaic status" });
             }
         }
 

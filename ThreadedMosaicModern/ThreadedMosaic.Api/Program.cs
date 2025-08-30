@@ -1,3 +1,4 @@
+using ThreadedMosaic.Api.Hubs;
 using ThreadedMosaic.Api.Middleware;
 using ThreadedMosaic.Core.Extensions;
 
@@ -70,6 +71,7 @@ app.UseMiddleware<ValidationMiddleware>();
 app.UseCors("AllowBlazorOrigin");
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<ProgressHub>("/progressHub");
 
 app.Run();
 

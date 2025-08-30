@@ -57,6 +57,9 @@ namespace ThreadedMosaic.Core.Extensions
             services.AddSingleton<MemoryManagementService>();
             services.AddHostedService<MemoryManagementService>(provider => provider.GetRequiredService<MemoryManagementService>());
             services.AddSingleton<ConcurrentProcessingThrottleService>();
+            
+            // Register cancellation tracking service
+            services.AddSingleton<IMosaicCancellationService, MosaicCancellationService>();
 
             return services;
         }

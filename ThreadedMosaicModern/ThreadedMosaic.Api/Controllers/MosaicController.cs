@@ -21,6 +21,7 @@ namespace ThreadedMosaic.Api.Controllers
         private readonly IHueMosaicService _hueMosaicService;
         private readonly IPhotoMosaicService _photoMosaicService;
         private readonly IMosaicProcessingResultRepository _mosaicResultRepository;
+        private readonly IMosaicCancellationService _cancellationService;
         private readonly ILogger<MosaicController> _logger;
 
         public MosaicController(
@@ -28,12 +29,14 @@ namespace ThreadedMosaic.Api.Controllers
             IHueMosaicService hueMosaicService,
             IPhotoMosaicService photoMosaicService,
             IMosaicProcessingResultRepository mosaicResultRepository,
+            IMosaicCancellationService cancellationService,
             ILogger<MosaicController> logger)
         {
             _colorMosaicService = colorMosaicService ?? throw new ArgumentNullException(nameof(colorMosaicService));
             _hueMosaicService = hueMosaicService ?? throw new ArgumentNullException(nameof(hueMosaicService));
             _photoMosaicService = photoMosaicService ?? throw new ArgumentNullException(nameof(photoMosaicService));
             _mosaicResultRepository = mosaicResultRepository ?? throw new ArgumentNullException(nameof(mosaicResultRepository));
+            _cancellationService = cancellationService ?? throw new ArgumentNullException(nameof(cancellationService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -52,23 +55,60 @@ namespace ThreadedMosaic.Api.Controllers
             [FromBody, Required] ColorMosaicRequest request,
             CancellationToken cancellationToken)
         {
+            var mosaicId = Guid.NewGuid();
+            
             try
             {
-                _logger.LogInformation("Creating color mosaic for master image: {MasterImagePath}", request.MasterImagePath);
+                _logger.LogInformation("Creating color mosaic {MosaicId} for master image: {MasterImagePath}", mosaicId, request.MasterImagePath);
                 
-                var result = await _colorMosaicService.CreateColorMosaicAsync(request, null, cancellationToken);
+                // Register the operation for cancellation tracking
+                var operationCancellationToken = _cancellationService.RegisterOperation(mosaicId);
                 
-                _logger.LogInformation("Color mosaic creation completed with status: {Status}", result.Status);
-                return Ok(result);
+                // Combine the request cancellation token with the operation cancellation token
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, operationCancellationToken);
+                
+                try
+                {
+                    var result = await _colorMosaicService.CreateColorMosaicAsync(request, null, linkedCts.Token);
+                    result.MosaicId = mosaicId; // Ensure the result has the correct ID
+                    
+                    _logger.LogInformation("Color mosaic {MosaicId} creation completed with status: {Status}", mosaicId, result.Status);
+                    return Ok(result);
+                }
+                catch (OperationCanceledException) when (operationCancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Color mosaic {MosaicId} creation was cancelled", mosaicId);
+                    return Ok(new MosaicResult 
+                    { 
+                        MosaicId = mosaicId, 
+                        Status = MosaicStatus.Cancelled, 
+                        ErrorMessage = "Operation was cancelled",
+                        CreatedAt = DateTime.UtcNow,
+                        CompletedAt = DateTime.UtcNow
+                    });
+                }
+                finally
+                {
+                    // Unregister the operation when done
+                    _cancellationService.UnregisterOperation(mosaicId);
+                }
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid color mosaic request parameters");
+                _logger.LogWarning(ex, "Invalid color mosaic request parameters for {MosaicId}", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
                 return BadRequest(new { error = ex.Message });
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("Color mosaic {MosaicId} request was cancelled by client", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
+                return StatusCode(499, new { error = "Client cancelled the request" }); // 499 Client Closed Request
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating color mosaic");
+                _logger.LogError(ex, "Error creating color mosaic {MosaicId}", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
                 return StatusCode(500, new { error = "An error occurred while creating the mosaic" });
             }
         }
@@ -88,23 +128,60 @@ namespace ThreadedMosaic.Api.Controllers
             [FromBody, Required] HueMosaicRequest request,
             CancellationToken cancellationToken)
         {
+            var mosaicId = Guid.NewGuid();
+            
             try
             {
-                _logger.LogInformation("Creating hue mosaic for master image: {MasterImagePath}", request.MasterImagePath);
+                _logger.LogInformation("Creating hue mosaic {MosaicId} for master image: {MasterImagePath}", mosaicId, request.MasterImagePath);
                 
-                var result = await _hueMosaicService.CreateHueMosaicAsync(request, null, cancellationToken);
+                // Register the operation for cancellation tracking
+                var operationCancellationToken = _cancellationService.RegisterOperation(mosaicId);
                 
-                _logger.LogInformation("Hue mosaic creation completed with status: {Status}", result.Status);
-                return Ok(result);
+                // Combine the request cancellation token with the operation cancellation token
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, operationCancellationToken);
+                
+                try
+                {
+                    var result = await _hueMosaicService.CreateHueMosaicAsync(request, null, linkedCts.Token);
+                    result.MosaicId = mosaicId; // Ensure the result has the correct ID
+                    
+                    _logger.LogInformation("Hue mosaic {MosaicId} creation completed with status: {Status}", mosaicId, result.Status);
+                    return Ok(result);
+                }
+                catch (OperationCanceledException) when (operationCancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Hue mosaic {MosaicId} creation was cancelled", mosaicId);
+                    return Ok(new MosaicResult 
+                    { 
+                        MosaicId = mosaicId, 
+                        Status = MosaicStatus.Cancelled, 
+                        ErrorMessage = "Operation was cancelled",
+                        CreatedAt = DateTime.UtcNow,
+                        CompletedAt = DateTime.UtcNow
+                    });
+                }
+                finally
+                {
+                    // Unregister the operation when done
+                    _cancellationService.UnregisterOperation(mosaicId);
+                }
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid hue mosaic request parameters");
+                _logger.LogWarning(ex, "Invalid hue mosaic request parameters for {MosaicId}", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
                 return BadRequest(new { error = ex.Message });
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("Hue mosaic {MosaicId} request was cancelled by client", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
+                return StatusCode(499, new { error = "Client cancelled the request" }); // 499 Client Closed Request
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating hue mosaic");
+                _logger.LogError(ex, "Error creating hue mosaic {MosaicId}", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
                 return StatusCode(500, new { error = "An error occurred while creating the mosaic" });
             }
         }
@@ -124,23 +201,60 @@ namespace ThreadedMosaic.Api.Controllers
             [FromBody, Required] PhotoMosaicRequest request,
             CancellationToken cancellationToken)
         {
+            var mosaicId = Guid.NewGuid();
+            
             try
             {
-                _logger.LogInformation("Creating photo mosaic for master image: {MasterImagePath}", request.MasterImagePath);
+                _logger.LogInformation("Creating photo mosaic {MosaicId} for master image: {MasterImagePath}", mosaicId, request.MasterImagePath);
                 
-                var result = await _photoMosaicService.CreatePhotoMosaicAsync(request, null, cancellationToken);
+                // Register the operation for cancellation tracking
+                var operationCancellationToken = _cancellationService.RegisterOperation(mosaicId);
                 
-                _logger.LogInformation("Photo mosaic creation completed with status: {Status}", result.Status);
-                return Ok(result);
+                // Combine the request cancellation token with the operation cancellation token
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, operationCancellationToken);
+                
+                try
+                {
+                    var result = await _photoMosaicService.CreatePhotoMosaicAsync(request, null, linkedCts.Token);
+                    result.MosaicId = mosaicId; // Ensure the result has the correct ID
+                    
+                    _logger.LogInformation("Photo mosaic {MosaicId} creation completed with status: {Status}", mosaicId, result.Status);
+                    return Ok(result);
+                }
+                catch (OperationCanceledException) when (operationCancellationToken.IsCancellationRequested)
+                {
+                    _logger.LogInformation("Photo mosaic {MosaicId} creation was cancelled", mosaicId);
+                    return Ok(new MosaicResult 
+                    { 
+                        MosaicId = mosaicId, 
+                        Status = MosaicStatus.Cancelled, 
+                        ErrorMessage = "Operation was cancelled",
+                        CreatedAt = DateTime.UtcNow,
+                        CompletedAt = DateTime.UtcNow
+                    });
+                }
+                finally
+                {
+                    // Unregister the operation when done
+                    _cancellationService.UnregisterOperation(mosaicId);
+                }
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid photo mosaic request parameters");
+                _logger.LogWarning(ex, "Invalid photo mosaic request parameters for {MosaicId}", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
                 return BadRequest(new { error = ex.Message });
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                _logger.LogInformation("Photo mosaic {MosaicId} request was cancelled by client", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
+                return StatusCode(499, new { error = "Client cancelled the request" }); // 499 Client Closed Request
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating photo mosaic");
+                _logger.LogError(ex, "Error creating photo mosaic {MosaicId}", mosaicId);
+                _cancellationService.UnregisterOperation(mosaicId);
                 return StatusCode(500, new { error = "An error occurred while creating the mosaic" });
             }
         }
@@ -197,24 +311,82 @@ namespace ThreadedMosaic.Api.Controllers
         /// Cancel a processing mosaic operation
         /// </summary>
         /// <param name="id">Mosaic ID</param>
+        /// <param name="cancellationToken">Request cancellation token</param>
         /// <returns>Cancellation result</returns>
         [HttpPost("{id}/cancel")]
         [SwaggerOperation(Summary = "Cancel mosaic", Description = "Cancels a processing mosaic operation")]
         [SwaggerResponse(200, "Mosaic cancelled successfully")]
         [SwaggerResponse(404, "Mosaic not found")]
         [SwaggerResponse(400, "Mosaic cannot be cancelled")]
-        public Task<ActionResult> CancelMosaic(Guid id)
+        public async Task<ActionResult> CancelMosaic(Guid id, CancellationToken cancellationToken = default)
         {
             try
             {
-                // TODO: Implement cancellation tracking
                 _logger.LogInformation("Cancelling mosaic: {MosaicId}", id);
-                return Task.FromResult<ActionResult>(Ok(new { id, cancelled = false, message = "Cancellation not yet implemented" }));
+                
+                // Check if the mosaic exists in the database
+                var mosaicResult = await _mosaicResultRepository.GetByIdAsync(id, cancellationToken);
+                if (mosaicResult == null)
+                {
+                    _logger.LogWarning("Cannot cancel mosaic {MosaicId} - not found", id);
+                    return NotFound(new { id, error = "Mosaic not found" });
+                }
+                
+                // Check if the operation can be cancelled
+                if (mosaicResult.Status == MosaicStatus.Completed)
+                {
+                    _logger.LogInformation("Mosaic {MosaicId} is already completed, cannot cancel", id);
+                    return BadRequest(new { id, error = "Mosaic is already completed" });
+                }
+                
+                if (mosaicResult.Status == MosaicStatus.Cancelled)
+                {
+                    _logger.LogInformation("Mosaic {MosaicId} is already cancelled", id);
+                    return Ok(new { id, cancelled = true, message = "Mosaic was already cancelled" });
+                }
+                
+                if (mosaicResult.Status == MosaicStatus.Failed)
+                {
+                    _logger.LogInformation("Mosaic {MosaicId} has already failed, cannot cancel", id);
+                    return BadRequest(new { id, error = "Mosaic has already failed" });
+                }
+                
+                // Attempt to cancel the active operation
+                bool wasCancelled = _cancellationService.CancelOperation(id);
+                
+                if (wasCancelled)
+                {
+                    // Update the database status to cancelled
+                    mosaicResult.Status = MosaicStatus.Cancelled;
+                    mosaicResult.CompletedAt = DateTime.UtcNow;
+                    mosaicResult.ErrorMessage = "Operation cancelled by user request";
+                    
+                    await _mosaicResultRepository.UpdateAsync(mosaicResult, cancellationToken);
+                    
+                    _logger.LogInformation("Successfully cancelled mosaic: {MosaicId}", id);
+                    return Ok(new { id, cancelled = true, message = "Mosaic operation cancelled successfully" });
+                }
+                else
+                {
+                    // Operation might have already completed or wasn't being tracked
+                    _logger.LogWarning("Could not cancel mosaic {MosaicId} - operation not found in cancellation service", id);
+                    
+                    // Still update the status in case the operation completed between checks
+                    if (mosaicResult.Status != MosaicStatus.Completed && mosaicResult.Status != MosaicStatus.Failed)
+                    {
+                        mosaicResult.Status = MosaicStatus.Cancelled;
+                        mosaicResult.CompletedAt = DateTime.UtcNow;
+                        mosaicResult.ErrorMessage = "Operation cancelled (was not actively running)";
+                        await _mosaicResultRepository.UpdateAsync(mosaicResult, cancellationToken);
+                    }
+                    
+                    return Ok(new { id, cancelled = true, message = "Mosaic marked as cancelled (operation may have already completed)" });
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error cancelling mosaic for ID: {MosaicId}", id);
-                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while cancelling the mosaic" }));
+                return StatusCode(500, new { error = "An error occurred while cancelling the mosaic" });
             }
         }
 

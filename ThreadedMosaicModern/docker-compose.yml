@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  # ThreadedMosaic API Service
+  threadedmosaic-api:
+    build:
+      context: .
+      dockerfile: ThreadedMosaic.Api/Dockerfile
+    container_name: threadedmosaic-api
+    ports:
+      - "5001:8080"   # HTTP
+      - "7001:8081"   # HTTPS
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=threadedmosaic
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+    volumes:
+      - ~/.aspnet/https:/https:ro
+      - ./data:/app/data
+    networks:
+      - threadedmosaic-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ThreadedMosaic Blazor Server Service  
+  threadedmosaic-blazor:
+    build:
+      context: .
+      dockerfile: ThreadedMosaic.BlazorServer/Dockerfile
+    container_name: threadedmosaic-blazor
+    ports:
+      - "5002:8080"   # HTTP
+      - "7002:8081"   # HTTPS
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=https://+:8081;http://+:8080
+      - ASPNETCORE_Kestrel__Certificates__Default__Password=threadedmosaic
+      - ASPNETCORE_Kestrel__Certificates__Default__Path=/https/aspnetapp.pfx
+      - ApiConfiguration__BaseUrl=https://threadedmosaic-api:8081
+    volumes:
+      - ~/.aspnet/https:/https:ro
+    networks:
+      - threadedmosaic-network
+    depends_on:
+      threadedmosaic-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  threadedmosaic-network:
+    driver: bridge
+
+volumes:
+  threadedmosaic-data:
+    driver: local

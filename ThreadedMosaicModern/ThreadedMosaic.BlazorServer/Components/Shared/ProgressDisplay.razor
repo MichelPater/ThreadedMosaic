@@ -156,7 +156,18 @@
     protected override async Task OnInitializedAsync()
     {
         hubConnection = new HubConnectionBuilder()
-            .WithUrl(Navigation.ToAbsoluteUri("/progresshub"))
+            .WithUrl(Navigation.ToAbsoluteUri("/progresshub"), options =>
+            {
+                // In development, accept self-signed certificates
+                options.HttpMessageHandlerFactory = (message) =>
+                {
+                    var handler = new HttpClientHandler();
+#if DEBUG
+                    handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+#endif
+                    return handler;
+                };
+            })
             .Build();
 
         hubConnection.On<string>("UpdateStatus", (status) =>
@@ -191,7 +202,16 @@
             InvokeAsync(StateHasChanged);
         });
 
-        await hubConnection.StartAsync();
+        try
+        {
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            // Log the error but don't crash the component
+            Console.WriteLine($"SignalR connection failed: {ex.Message}");
+            // Component will still work without real-time updates
+        }
     }
 
     public async Task StartProcessing(string processingId)

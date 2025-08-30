@@ -1,27 +1,38 @@
-@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Components.Forms
 
 <div class="mb-3">
     <label class="form-label">Output Location</label>
+    
     <div class="input-group">
-        <input type="text" class="form-control" @bind="@OutputPath" placeholder="Specify where to save the mosaic..." />
-        <button class="btn btn-outline-secondary" type="button" @onclick="@SelectLocation">
-            <i class="bi bi-folder"></i> Browse
-        </button>
+        <InputFile class="form-control" 
+                   @ref="locationInput" 
+                   OnChange="OnLocationSelected" 
+                   webkitdirectory 
+                   directory />
+        @if (!string.IsNullOrEmpty(OutputPath))
+        {
+            <button class="btn btn-outline-danger" type="button" @onclick="ClearSelection">
+                <i class="bi bi-x"></i> Clear
+            </button>
+        }
     </div>
+    
     @if (!string.IsNullOrEmpty(OutputPath))
     {
         <div class="form-text text-success">
-            <i class="bi bi-check-circle"></i> @System.IO.Path.GetFileName(OutputPath)
+            <i class="bi bi-check-circle"></i> @Path.GetFileName(OutputPath)
         </div>
     }
+    
     @if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="form-text text-danger">
             <i class="bi bi-exclamation-triangle"></i> @errorMessage
         </div>
     }
+    
     <div class="form-text">
-        <small>Supported formats: JPEG, PNG, BMP, WebP. Extension will be added automatically based on selected format.</small>
+        Select a directory where your mosaic will be saved. Supported formats: JPEG, PNG, BMP, WebP.
     </div>
 </div>
 
@@ -29,6 +40,7 @@
     [Parameter] public string? OutputPath { get; set; }
     [Parameter] public EventCallback<string?> OutputPathChanged { get; set; }
 
+    private InputFile locationInput = null!;
     private string? errorMessage;
 
     protected override void OnInitialized()
@@ -37,71 +49,62 @@
         if (string.IsNullOrEmpty(OutputPath))
         {
             var desktopPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-            var defaultFileName = $"mosaic_{DateTime.Now:yyyyMMdd_HHmmss}";
-            OutputPath = Path.Combine(desktopPath, defaultFileName);
+            OutputPath = desktopPath;
         }
     }
 
-    private async Task SelectLocation()
+    private async Task OnLocationSelected(InputFileChangeEventArgs e)
     {
         try
         {
-            // For now, use a simple prompt - in a real application, you'd use a proper file save dialog
-            var currentFileName = string.IsNullOrEmpty(OutputPath) 
-                ? $"mosaic_{DateTime.Now:yyyyMMdd_HHmmss}" 
-                : Path.GetFileNameWithoutExtension(OutputPath);
-                
-            var fileName = await JSRuntime.InvokeAsync<string>("prompt", "Enter the output filename (without extension):", currentFileName);
+            errorMessage = null;
+            var files = e.GetMultipleFiles(1); // Only need one file to determine directory
             
-            if (!string.IsNullOrEmpty(fileName))
+            if (files.Count > 0)
             {
-                // Remove any invalid filename characters
-                var invalidChars = Path.GetInvalidFileNameChars();
-                foreach (var invalidChar in invalidChars)
-                {
-                    fileName = fileName.Replace(invalidChar, '_');
-                }
-
-                // Get directory from current path or use desktop
-                var directory = string.IsNullOrEmpty(OutputPath) 
-                    ? Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
-                    : Path.GetDirectoryName(OutputPath) ?? Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
-
-                var newPath = Path.Combine(directory, fileName);
+                var firstFile = files.First();
+                var directoryName = "Selected Directory";
                 
-                // Validate directory is writable
-                if (Directory.Exists(directory))
+                // Try to extract directory name from file path
+                if (!string.IsNullOrEmpty(firstFile.Name))
                 {
-                    try
+                    var pathSegments = firstFile.Name.Replace('\\', '/').Split('/');
+                    if (pathSegments.Length > 1)
                     {
-                        // Test write access
-                        var testFile = Path.Combine(directory, Guid.NewGuid().ToString());
-                        File.WriteAllText(testFile, "test");
-                        File.Delete(testFile);
-                        
-                        errorMessage = null;
-                        await OutputPathChanged.InvokeAsync(newPath);
-                    }
-                    catch
-                    {
-                        errorMessage = "Cannot write to the selected directory";
+                        directoryName = pathSegments[0];
                     }
                 }
-                else
-                {
-                    errorMessage = "Selected directory does not exist";
-                }
+                
+                // For output location, we want the directory path, not individual files
+                // Since this is a directory picker, we'll use the directory name
+                OutputPath = directoryName;
+                await OutputPathChanged.InvokeAsync(directoryName);
+                
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = "No directory selected";
             }
         }
         catch (Exception ex)
         {
-            errorMessage = $"Error selecting location: {ex.Message}";
+            errorMessage = $"Error selecting output location: {ex.Message}";
         }
     }
 
-    private async Task OnOutputPathChanged(string? value)
+    private async Task ClearSelection()
     {
-        OutputPath = value;
-        await OutputPathChanged.InvokeAsync(value);
+        OutputPath = null;
+        errorMessage = null;
+        await OutputPathChanged.InvokeAsync(null);
+        
+        StateHasChanged();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Handle external parameter changes
+        await base.OnParametersSetAsync();
     }
 }

@@ -22,6 +22,7 @@ namespace ThreadedMosaic.Tests.Api
         private readonly Mock<IHueMosaicService> _mockHueService;
         private readonly Mock<IPhotoMosaicService> _mockPhotoService;
         private readonly Mock<IMosaicProcessingResultRepository> _mockMosaicResultRepository;
+        private readonly Mock<IMosaicCancellationService> _mockCancellationService;
         private readonly Mock<ILogger<MosaicController>> _mockLogger;
         private readonly MosaicController _controller;
         private readonly string _testDirectory;
@@ -32,6 +33,7 @@ namespace ThreadedMosaic.Tests.Api
             _mockHueService = new Mock<IHueMosaicService>();
             _mockPhotoService = new Mock<IPhotoMosaicService>();
             _mockMosaicResultRepository = new Mock<IMosaicProcessingResultRepository>();
+            _mockCancellationService = new Mock<IMosaicCancellationService>();
             _mockLogger = new Mock<ILogger<MosaicController>>();
 
             _controller = new MosaicController(
@@ -39,6 +41,7 @@ namespace ThreadedMosaic.Tests.Api
                 _mockHueService.Object, 
                 _mockPhotoService.Object, 
                 _mockMosaicResultRepository.Object,
+                _mockCancellationService.Object,
                 _mockLogger.Object);
 
             // Create test directory
@@ -229,7 +232,7 @@ namespace ThreadedMosaic.Tests.Api
         public void Constructor_NullColorMosaicService_ThrowsArgumentNullException()
         {
             // Act & Assert
-            FluentActions.Invoking(() => new MosaicController(null!, _mockHueService.Object, _mockPhotoService.Object, _mockMosaicResultRepository.Object, _mockLogger.Object))
+            FluentActions.Invoking(() => new MosaicController(null!, _mockHueService.Object, _mockPhotoService.Object, _mockMosaicResultRepository.Object, _mockCancellationService.Object, _mockLogger.Object))
                          .Should().Throw<ArgumentNullException>()
                          .WithParameterName("colorMosaicService");
         }
@@ -238,7 +241,7 @@ namespace ThreadedMosaic.Tests.Api
         public void Constructor_NullHueMosaicService_ThrowsArgumentNullException()
         {
             // Act & Assert
-            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, null!, _mockPhotoService.Object, _mockMosaicResultRepository.Object, _mockLogger.Object))
+            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, null!, _mockPhotoService.Object, _mockMosaicResultRepository.Object, _mockCancellationService.Object, _mockLogger.Object))
                          .Should().Throw<ArgumentNullException>()
                          .WithParameterName("hueMosaicService");
         }
@@ -247,7 +250,7 @@ namespace ThreadedMosaic.Tests.Api
         public void Constructor_NullPhotoMosaicService_ThrowsArgumentNullException()
         {
             // Act & Assert
-            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, null!, _mockMosaicResultRepository.Object, _mockLogger.Object))
+            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, null!, _mockMosaicResultRepository.Object, _mockCancellationService.Object, _mockLogger.Object))
                          .Should().Throw<ArgumentNullException>()
                          .WithParameterName("photoMosaicService");
         }
@@ -256,7 +259,7 @@ namespace ThreadedMosaic.Tests.Api
         public void Constructor_NullMosaicResultRepository_ThrowsArgumentNullException()
         {
             // Act & Assert
-            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, _mockPhotoService.Object, null!, _mockLogger.Object))
+            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, _mockPhotoService.Object, null!, _mockCancellationService.Object, _mockLogger.Object))
                          .Should().Throw<ArgumentNullException>()
                          .WithParameterName("mosaicResultRepository");
         }
@@ -265,7 +268,7 @@ namespace ThreadedMosaic.Tests.Api
         public void Constructor_NullLogger_ThrowsArgumentNullException()
         {
             // Act & Assert
-            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, _mockPhotoService.Object, _mockMosaicResultRepository.Object, null!))
+            FluentActions.Invoking(() => new MosaicController(_mockColorService.Object, _mockHueService.Object, _mockPhotoService.Object, _mockMosaicResultRepository.Object, _mockCancellationService.Object, null!))
                          .Should().Throw<ArgumentNullException>()
                          .WithParameterName("logger");
         }

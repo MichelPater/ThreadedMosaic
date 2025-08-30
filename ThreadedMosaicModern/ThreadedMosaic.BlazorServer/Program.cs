@@ -8,7 +8,27 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Add SignalR for real-time progress updates
-builder.Services.AddSignalR();
+builder.Services.AddSignalR(options =>
+{
+    if (builder.Environment.IsDevelopment())
+    {
+        options.EnableDetailedErrors = true;
+    }
+    
+    // Configure timeouts from appsettings
+    var signalRConfig = builder.Configuration.GetSection("SignalR");
+    if (signalRConfig.Exists())
+    {
+        if (TimeSpan.TryParse(signalRConfig["KeepAliveInterval"], out var keepAlive))
+            options.KeepAliveInterval = keepAlive;
+            
+        if (TimeSpan.TryParse(signalRConfig["HandshakeTimeout"], out var handshake))
+            options.HandshakeTimeout = handshake;
+            
+        if (TimeSpan.TryParse(signalRConfig["ClientTimeoutInterval"], out var clientTimeout))
+            options.ClientTimeoutInterval = clientTimeout;
+    }
+});
 
 // Add ThreadedMosaic Core services
 builder.Services.AddThreadedMosaicCore(builder.Configuration);
@@ -18,6 +38,16 @@ builder.Services.AddHttpClient("ThreadedMosaicApi", client =>
 {
     client.BaseAddress = new Uri(builder.Configuration.GetValue<string>("ApiConfiguration:BaseUrl") ?? "https://localhost:7001");
     client.Timeout = TimeSpan.FromSeconds(builder.Configuration.GetValue<int>("ApiConfiguration:TimeoutSeconds", 300));
+})
+.ConfigurePrimaryHttpMessageHandler(() =>
+{
+    var handler = new HttpClientHandler();
+    if (builder.Environment.IsDevelopment())
+    {
+        // In development, accept self-signed certificates
+        handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+    }
+    return handler;
 });
 
 // Add Blazor-specific services

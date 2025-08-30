@@ -1,72 +1,94 @@
-@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Components.Forms
 
 <div class="mb-3">
     <label class="form-label">Seed Images Directory</label>
+    
     <div class="input-group">
-        <input type="text" class="form-control" @bind="@SelectedDirectory" placeholder="Select directory containing seed images..." readonly />
-        <button class="btn btn-outline-secondary" type="button" @onclick="@SelectDirectory">
-            <i class="bi bi-folder"></i> Browse
-        </button>
+        <InputFile class="form-control" 
+                   @ref="directoryInput" 
+                   OnChange="OnDirectorySelected" 
+                   webkitdirectory 
+                   directory 
+                   multiple 
+                   accept="image/*" />
+        @if (!string.IsNullOrEmpty(SelectedDirectory))
+        {
+            <button class="btn btn-outline-danger" type="button" @onclick="ClearSelection">
+                <i class="bi bi-x"></i> Clear
+            </button>
+        }
     </div>
+    
     @if (!string.IsNullOrEmpty(SelectedDirectory))
     {
         <div class="form-text text-success">
-            <i class="bi bi-check-circle"></i> @System.IO.Path.GetFileName(SelectedDirectory)
+            <i class="bi bi-check-circle"></i> @Path.GetFileName(SelectedDirectory)
             @if (imageCount > 0)
             {
                 <span class="badge bg-info ms-2">@imageCount images</span>
             }
         </div>
     }
+    
     @if (!string.IsNullOrEmpty(errorMessage))
     {
         <div class="form-text text-danger">
             <i class="bi bi-exclamation-triangle"></i> @errorMessage
         </div>
     }
+    
+    <div class="form-text">
+        Select a directory containing images to use as tiles for your mosaic. No file limit - select as many images as needed.
+    </div>
 </div>
 
 @code {
     [Parameter] public string? SelectedDirectory { get; set; }
     [Parameter] public EventCallback<string?> SelectedDirectoryChanged { get; set; }
 
+    private InputFile directoryInput = null!;
     private string? errorMessage;
     private int imageCount = 0;
+    private List<IBrowserFile> selectedFiles = new();
 
-    private async Task SelectDirectory()
+    private async Task OnDirectorySelected(InputFileChangeEventArgs e)
     {
         try
         {
-            // For now, use a simple prompt - in a real application, you'd use a proper directory picker
-            var directory = await JSRuntime.InvokeAsync<string>("prompt", "Enter the path to your seed images directory:");
+            errorMessage = null;
+            // Allow unlimited files for seed directories (personal use, resources not a concern)
+            selectedFiles = e.GetMultipleFiles(int.MaxValue).ToList();
             
-            if (!string.IsNullOrEmpty(directory))
+            if (selectedFiles.Count > 0)
             {
-                // Validate directory exists and contains images
-                if (Directory.Exists(directory))
+                // Get directory name from the first file's name
+                var firstFile = selectedFiles.First();
+                var directoryName = "Selected Directory";
+                
+                // Try to extract directory name from file path
+                if (!string.IsNullOrEmpty(firstFile.Name))
                 {
-                    var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp", ".gif" };
-                    var imageFiles = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly)
-                        .Where(file => imageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
-                        .ToArray();
-
-                    if (imageFiles.Length > 0)
+                    var pathSegments = firstFile.Name.Replace('\\', '/').Split('/');
+                    if (pathSegments.Length > 1)
                     {
-                        imageCount = imageFiles.Length;
-                        errorMessage = null;
-                        await SelectedDirectoryChanged.InvokeAsync(directory);
-                    }
-                    else
-                    {
-                        errorMessage = "Directory contains no valid image files";
-                        imageCount = 0;
+                        directoryName = pathSegments[0];
                     }
                 }
-                else
-                {
-                    errorMessage = "Directory does not exist";
-                    imageCount = 0;
-                }
+                
+                // Count image files
+                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp", ".gif" };
+                imageCount = selectedFiles.Count(file => 
+                    imageExtensions.Any(ext => 
+                        Path.GetExtension(file.Name).Equals(ext, StringComparison.OrdinalIgnoreCase)));
+                
+                SelectedDirectory = directoryName;
+                await SelectedDirectoryChanged.InvokeAsync(directoryName);
+                
+                StateHasChanged();
+            }
+            else
+            {
+                errorMessage = "No files selected";
             }
         }
         catch (Exception ex)
@@ -76,23 +98,21 @@
         }
     }
 
+    private async Task ClearSelection()
+    {
+        SelectedDirectory = null;
+        imageCount = 0;
+        errorMessage = null;
+        selectedFiles.Clear();
+        await SelectedDirectoryChanged.InvokeAsync(null);
+        
+        StateHasChanged();
+    }
+
     protected override async Task OnParametersSetAsync()
     {
-        if (!string.IsNullOrEmpty(SelectedDirectory) && Directory.Exists(SelectedDirectory))
-        {
-            try
-            {
-                var imageExtensions = new[] { ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp", ".gif" };
-                var imageFiles = Directory.GetFiles(SelectedDirectory, "*.*", SearchOption.TopDirectoryOnly)
-                    .Where(file => imageExtensions.Contains(Path.GetExtension(file).ToLowerInvariant()))
-                    .ToArray();
-                imageCount = imageFiles.Length;
-            }
-            catch
-            {
-                imageCount = 0;
-            }
-        }
+        // If SelectedDirectory is set externally, we don't need to validate it
+        // since it might be a server path that doesn't exist on client
         await base.OnParametersSetAsync();
     }
 }

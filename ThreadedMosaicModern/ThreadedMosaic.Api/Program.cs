@@ -20,7 +20,11 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorOrigin", policy =>
     {
-        policy.WithOrigins("https://localhost:7001", "http://localhost:5001")
+        policy.WithOrigins(
+                "https://localhost:7001", "http://localhost:5001",  // API ports
+                "https://localhost:7002", "http://localhost:5002",  // Blazor Server ports
+                "https://localhost:7003", "http://localhost:5003"   // Additional ports
+              )
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();

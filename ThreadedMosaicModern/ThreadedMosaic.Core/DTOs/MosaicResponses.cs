@@ -130,4 +130,26 @@ namespace ThreadedMosaic.Core.DTOs
         public bool HasTransparency { get; set; }
         public Dictionary<string, object> Metadata { get; set; } = new();
     }
+
+    /// <summary>
+    /// Result of file upload operation for multiple files
+    /// </summary>
+    public class FileUploadResult
+    {
+        public string Message { get; set; } = string.Empty;
+        public string UploadDirectory { get; set; } = string.Empty;
+        public List<UploadedFile> Files { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Information about an uploaded file
+    /// </summary>
+    public class UploadedFile
+    {
+        public string OriginalName { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public string FilePath { get; set; } = string.Empty;
+        public long Size { get; set; }
+        public string ContentType { get; set; } = string.Empty;
+    }
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 using ThreadedMosaic.Core.Interfaces;
+using ThreadedMosaic.Core.DTOs;
 
 namespace ThreadedMosaic.Api.Controllers
 {
@@ -52,7 +53,7 @@ namespace ThreadedMosaic.Api.Controllers
                     return BadRequest(new { error = "Type must be 'master' or 'seed'" });
                 }
 
-                var uploadedFiles = new List<object>();
+                var uploadedFiles = new List<UploadedFile>();
                 var uploadDirectory = Path.Combine(Path.GetTempPath(), "ThreadedMosaic", type, Guid.NewGuid().ToString());
 
                 if (!Directory.Exists(uploadDirectory))
@@ -88,13 +89,13 @@ namespace ThreadedMosaic.Api.Controllers
                         return StatusCode(500, new { error = "Failed to save file", fileName = file.FileName });
                     }
 
-                    uploadedFiles.Add(new
+                    uploadedFiles.Add(new UploadedFile
                     {
-                        originalName = file.FileName,
-                        fileName = fileName,
-                        filePath = filePath,
-                        size = file.Length,
-                        contentType = file.ContentType
+                        OriginalName = file.FileName,
+                        FileName = fileName,
+                        FilePath = filePath,
+                        Size = file.Length,
+                        ContentType = file.ContentType
                     });
 
                     _logger.LogDebug("File uploaded successfully: {FilePath}", filePath);
@@ -103,11 +104,11 @@ namespace ThreadedMosaic.Api.Controllers
                 _logger.LogInformation("Successfully uploaded {FileCount} {Type} files to {Directory}", 
                     files.Count, type, uploadDirectory);
 
-                return Ok(new
+                return Ok(new FileUploadResult
                 {
-                    message = $"Successfully uploaded {files.Count} {type} files",
-                    uploadDirectory,
-                    files = uploadedFiles
+                    Message = $"Successfully uploaded {files.Count} {type} files",
+                    UploadDirectory = uploadDirectory,
+                    Files = uploadedFiles
                 });
             }
             catch (Exception ex)

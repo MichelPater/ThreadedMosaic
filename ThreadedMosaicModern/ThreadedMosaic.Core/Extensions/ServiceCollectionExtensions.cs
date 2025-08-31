@@ -61,6 +61,12 @@ namespace ThreadedMosaic.Core.Extensions
             // Register cancellation tracking service
             services.AddSingleton<IMosaicCancellationService, MosaicCancellationService>();
 
+            // Add advanced performance optimization services
+            services.AddAdvancedPerformanceServices();
+
+            // Add health check services
+            services.AddThreadedMosaicHealthChecks();
+
             return services;
         }
 
@@ -176,6 +182,42 @@ namespace ThreadedMosaic.Core.Extensions
             await dbContext.Database.MigrateAsync();
             
             return serviceProvider;
+        }
+
+        /// <summary>
+        /// Adds advanced performance optimization services including memory-mapped processing, 
+        /// intelligent preprocessing, streaming compression, and performance monitoring
+        /// </summary>
+        private static IServiceCollection AddAdvancedPerformanceServices(this IServiceCollection services)
+        {
+            // Memory-mapped file processing for large images
+            services.AddScoped<MemoryMappedImageProcessor>();
+
+            // Intelligent image preprocessing with adaptive quality
+            services.AddScoped<IntelligentImagePreprocessor>();
+
+            // Streaming compression services
+            services.AddScoped<StreamingCompressionService>();
+
+            // Performance monitoring and telemetry
+            services.AddSingleton<PerformanceMonitoringService>();
+            services.AddSingleton<IPerformanceMonitor>(provider => provider.GetRequiredService<PerformanceMonitoringService>());
+            services.AddHostedService<PerformanceMonitoringService>(provider => provider.GetRequiredService<PerformanceMonitoringService>());
+
+            return services;
+        }
+
+        /// <summary>
+        /// Adds health check services for monitoring system health
+        /// </summary>
+        public static IServiceCollection AddThreadedMosaicHealthChecks(this IServiceCollection services)
+        {
+            services.AddHealthChecks()
+                .AddCheck<ThreadedMosaicHealthCheck>("system_resources", tags: new[] { "system" })
+                .AddCheck<ImageProcessingHealthCheck>("image_processing", tags: new[] { "processing" })
+                .AddCheck<DatabaseHealthCheck>("database", tags: new[] { "database" });
+
+            return services;
         }
     }
 }

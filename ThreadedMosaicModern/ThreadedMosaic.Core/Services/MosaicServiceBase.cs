@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,10 @@ namespace ThreadedMosaic.Core.Services
         protected readonly IImageProcessingService ImageProcessingService;
         protected readonly IFileOperations FileOperations;
         protected readonly ILogger Logger;
+        
+        // Track active operations for status and cancellation
+        private static readonly ConcurrentDictionary<Guid, MosaicOperationInfo> _activeOperations = new();
+        private static readonly ConcurrentDictionary<Guid, byte[]> _previewCache = new();
 
         protected MosaicServiceBase(
             IImageProcessingService imageProcessingService,
@@ -332,5 +337,195 @@ namespace ThreadedMosaic.Core.Services
             result.ErrorMessage = $"Error in {context}: {ex.Message}";
             result.CompletedAt = DateTime.UtcNow;
         }
+
+        #region Status, Cancellation and Preview Methods
+
+        /// <summary>
+        /// Gets the status of a mosaic operation
+        /// </summary>
+        public virtual Task<MosaicStatus> GetMosaicStatusAsync(Guid mosaicId)
+        {
+            Logger.LogDebug("Getting status for mosaic operation: {MosaicId}", mosaicId);
+            
+            if (_activeOperations.TryGetValue(mosaicId, out var operation))
+            {
+                Logger.LogDebug("Found active operation {MosaicId} with status: {Status}", mosaicId, operation.Status);
+                return Task.FromResult(operation.Status);
+            }
+
+            Logger.LogDebug("No active operation found for {MosaicId}, returning Unknown status", mosaicId);
+            return Task.FromResult(MosaicStatus.Unknown);
+        }
+
+        /// <summary>
+        /// Cancels a running mosaic operation
+        /// </summary>
+        public virtual Task<bool> CancelMosaicAsync(Guid mosaicId)
+        {
+            Logger.LogInformation("Attempting to cancel mosaic operation: {MosaicId}", mosaicId);
+            
+            if (_activeOperations.TryGetValue(mosaicId, out var operation))
+            {
+                try
+                {
+                    if (operation.CancellationTokenSource != null && !operation.CancellationTokenSource.Token.IsCancellationRequested)
+                    {
+                        operation.CancellationTokenSource.Cancel();
+                        operation.Status = MosaicStatus.Cancelled;
+                        operation.CompletedAt = DateTime.UtcNow;
+                        operation.ErrorMessage = "Operation cancelled by user request";
+                        
+                        Logger.LogInformation("Successfully cancelled mosaic operation: {MosaicId}", mosaicId);
+                        return Task.FromResult(true);
+                    }
+                    else
+                    {
+                        Logger.LogWarning("Mosaic operation {MosaicId} was already cancelled", mosaicId);
+                        return Task.FromResult(true); // Already cancelled
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error cancelling mosaic operation: {MosaicId}", mosaicId);
+                    return Task.FromResult(false);
+                }
+            }
+
+            Logger.LogWarning("Cannot cancel mosaic operation {MosaicId} - operation not found", mosaicId);
+            return Task.FromResult(false);
+        }
+
+        /// <summary>
+        /// Gets a preview/thumbnail of the mosaic being created
+        /// </summary>
+        public virtual async Task<byte[]?> GetMosaicPreviewAsync(Guid mosaicId)
+        {
+            Logger.LogDebug("Getting preview for mosaic operation: {MosaicId}", mosaicId);
+
+            // Check cache first
+            if (_previewCache.TryGetValue(mosaicId, out var cachedPreview))
+            {
+                Logger.LogDebug("Found cached preview for {MosaicId} ({Size} bytes)", mosaicId, cachedPreview.Length);
+                return cachedPreview;
+            }
+
+            // Check if operation exists and has output
+            if (_activeOperations.TryGetValue(mosaicId, out var operation))
+            {
+                // If completed and has output path, generate preview
+                if (operation.Status == MosaicStatus.Completed && !string.IsNullOrEmpty(operation.OutputPath))
+                {
+                    try
+                    {
+                        if (System.IO.File.Exists(operation.OutputPath))
+                        {
+                            var previewBytes = await ImageProcessingService.CreateThumbnailAsync(
+                                operation.OutputPath, 400, 300, CancellationToken.None);
+                            
+                            // Cache for future requests
+                            _previewCache.TryAdd(mosaicId, previewBytes);
+                            
+                            Logger.LogDebug("Generated preview for {MosaicId} ({Size} bytes)", mosaicId, previewBytes.Length);
+                            return previewBytes;
+                        }
+                        else
+                        {
+                            Logger.LogWarning("Output file not found for mosaic {MosaicId}: {OutputPath}", mosaicId, operation.OutputPath);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogError(ex, "Error generating preview for mosaic {MosaicId}", mosaicId);
+                    }
+                }
+                else
+                {
+                    Logger.LogDebug("Mosaic {MosaicId} is not completed or has no output path (Status: {Status})", mosaicId, operation.Status);
+                }
+            }
+            else
+            {
+                Logger.LogDebug("No active operation found for {MosaicId}", mosaicId);
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Validates a mosaic request (generic implementation)
+        /// </summary>
+        public virtual Task<ValidationResult> ValidateMosaicRequestAsync(object request)
+        {
+            var result = new ValidationResult { IsValid = true };
+            
+            if (request == null)
+            {
+                result.IsValid = false;
+                result.AddError("Request cannot be null");
+                return Task.FromResult(result);
+            }
+
+            // Basic validation - specific services can override for more detailed validation
+            Logger.LogDebug("Validating mosaic request of type: {RequestType}", request.GetType().Name);
+            
+            return Task.FromResult(result);
+        }
+
+        /// <summary>
+        /// Registers an operation for tracking
+        /// </summary>
+        protected void RegisterOperation(Guid mosaicId, CancellationTokenSource cancellationTokenSource, string? outputPath = null)
+        {
+            var operation = new MosaicOperationInfo
+            {
+                OperationId = mosaicId,
+                Status = MosaicStatus.Initializing,
+                StartedAt = DateTime.UtcNow,
+                CancellationTokenSource = cancellationTokenSource,
+                OutputPath = outputPath
+            };
+
+            _activeOperations.TryAdd(mosaicId, operation);
+            Logger.LogDebug("Registered operation for tracking: {MosaicId}", mosaicId);
+        }
+
+        /// <summary>
+        /// Updates the status of an operation
+        /// </summary>
+        protected void UpdateOperationStatus(Guid mosaicId, MosaicStatus status, string? currentStep = null, double? progressPercentage = null)
+        {
+            if (_activeOperations.TryGetValue(mosaicId, out var operation))
+            {
+                operation.Status = status;
+                if (!string.IsNullOrEmpty(currentStep))
+                    operation.CurrentStep = currentStep;
+                if (progressPercentage.HasValue)
+                    operation.ProgressPercentage = progressPercentage.Value;
+                
+                if (status == MosaicStatus.Completed || status == MosaicStatus.Failed || status == MosaicStatus.Cancelled)
+                {
+                    operation.CompletedAt = DateTime.UtcNow;
+                }
+
+                Logger.LogDebug("Updated operation {MosaicId} status to: {Status}", mosaicId, status);
+            }
+        }
+
+        /// <summary>
+        /// Unregisters an operation when completed
+        /// </summary>
+        protected void UnregisterOperation(Guid mosaicId)
+        {
+            if (_activeOperations.TryRemove(mosaicId, out var operation))
+            {
+                operation.CancellationTokenSource?.Dispose();
+                Logger.LogDebug("Unregistered operation: {MosaicId}", mosaicId);
+            }
+            
+            // Remove from preview cache as well
+            _previewCache.TryRemove(mosaicId, out _);
+        }
+
+        #endregion
     }
 }

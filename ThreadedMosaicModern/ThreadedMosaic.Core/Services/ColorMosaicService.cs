@@ -58,10 +58,15 @@ namespace ThreadedMosaic.Core.Services
 
             var mosaicId = Guid.NewGuid();
             var result = CreateMosaicResult(mosaicId, colorRequest.OutputPath);
+            var operationCancellationSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+            // Register the operation for tracking
+            RegisterOperation(mosaicId, operationCancellationSource, colorRequest.OutputPath);
 
             try
             {
                 result.Status = MosaicStatus.Initializing;
+                UpdateOperationStatus(mosaicId, MosaicStatus.Initializing, "Initializing color mosaic creation");
                 
                 // Validate request
                 var validation = await ValidateRequestAsync(colorRequest).ConfigureAwait(false);
@@ -69,6 +74,7 @@ namespace ThreadedMosaic.Core.Services
                 {
                     result.Status = MosaicStatus.Failed;
                     result.ErrorMessage = string.Join("; ", validation.Errors);
+                    UpdateOperationStatus(mosaicId, MosaicStatus.Failed, "Validation failed");
                     return result;
                 }
 
@@ -79,6 +85,7 @@ namespace ThreadedMosaic.Core.Services
 
                 // Load master image
                 result.Status = MosaicStatus.LoadingImages;
+                UpdateOperationStatus(mosaicId, MosaicStatus.LoadingImages, "Loading master image", 10);
                 Logger.LogInformation("Loading master image: {MasterImagePath}", colorRequest.MasterImagePath);
                 
                 var masterImage = await ImageProcessingService.LoadImageAsync(colorRequest.MasterImagePath, cancellationToken).ConfigureAwait(false);
@@ -90,25 +97,30 @@ namespace ThreadedMosaic.Core.Services
                 {
                     result.Status = MosaicStatus.Failed;
                     result.ErrorMessage = "No valid seed images found";
+                    UpdateOperationStatus(mosaicId, MosaicStatus.Failed, "No valid seed images found");
                     return result;
                 }
 
                 // Create tile color grid
                 result.Status = MosaicStatus.AnalyzingImages;
-                var colorGrid = await CreateTileColorGridAsync(masterImage, colorRequest.PixelSize, progressReporter, cancellationToken).ConfigureAwait(false);
+                UpdateOperationStatus(mosaicId, MosaicStatus.AnalyzingImages, "Analyzing images", 30);
+                var colorGrid = await CreateTileColorGridAsync(masterImage, colorRequest.PixelSize, progressReporter, operationCancellationSource.Token).ConfigureAwait(false);
 
                 // Create mosaic
                 result.Status = MosaicStatus.CreatingMosaic;
-                var mosaicImage = await CreateColorMosaicImageAsync(colorGrid, seedImages, colorRequest, progressReporter, cancellationToken).ConfigureAwait(false);
+                UpdateOperationStatus(mosaicId, MosaicStatus.CreatingMosaic, "Creating mosaic", 60);
+                var mosaicImage = await CreateColorMosaicImageAsync(colorGrid, seedImages, colorRequest, progressReporter, operationCancellationSource.Token).ConfigureAwait(false);
 
                 // Save result
                 result.Status = MosaicStatus.Saving;
-                var outputPath = await SaveMosaicAsync(mosaicImage, colorRequest.OutputPath, colorRequest.OutputFormat, colorRequest.Quality, progressReporter, cancellationToken).ConfigureAwait(false);
+                UpdateOperationStatus(mosaicId, MosaicStatus.Saving, "Saving mosaic", 90);
+                var outputPath = await SaveMosaicAsync(mosaicImage, colorRequest.OutputPath, colorRequest.OutputFormat, colorRequest.Quality, progressReporter, operationCancellationSource.Token).ConfigureAwait(false);
 
                 result.Status = MosaicStatus.Completed;
                 result.CompletedAt = DateTime.UtcNow;
                 result.OutputPath = outputPath;
                 result.ProcessingTime = result.CompletedAt - result.CreatedAt;
+                UpdateOperationStatus(mosaicId, MosaicStatus.Completed, "Mosaic completed", 100);
 
                 UpdateStatistics(result, seedImages.ToList(), colorGrid);
 
@@ -119,13 +131,21 @@ namespace ThreadedMosaic.Core.Services
             {
                 result.Status = MosaicStatus.Cancelled;
                 result.CompletedAt = DateTime.UtcNow;
+                UpdateOperationStatus(mosaicId, MosaicStatus.Cancelled, "Operation cancelled");
                 Logger.LogInformation("Color mosaic creation cancelled");
                 return result;
             }
             catch (Exception ex)
             {
                 HandleProcessingException(result, ex, "color mosaic creation");
+                UpdateOperationStatus(mosaicId, MosaicStatus.Failed, $"Error: {ex.Message}");
                 return result;
+            }
+            finally
+            {
+                // Clean up operation tracking
+                UnregisterOperation(mosaicId);
+                operationCancellationSource?.Dispose();
             }
         }
 

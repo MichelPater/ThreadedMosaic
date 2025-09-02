@@ -152,4 +152,24 @@ namespace ThreadedMosaic.Core.DTOs
         public long Size { get; set; }
         public string ContentType { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// Information about an active mosaic operation
+    /// </summary>
+    public class MosaicOperationInfo
+    {
+        public Guid OperationId { get; set; }
+        public MosaicStatus Status { get; set; } = MosaicStatus.Pending;
+        public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? CompletedAt { get; set; }
+        public string CurrentStep { get; set; } = string.Empty;
+        public int TotalSteps { get; set; } = 1;
+        public int CurrentStepNumber { get; set; } = 0;
+        public double ProgressPercentage { get; set; } = 0;
+        public string? ErrorMessage { get; set; }
+        public CancellationTokenSource? CancellationTokenSource { get; set; }
+        public string? OutputPath { get; set; }
+        public int TilesProcessed { get; set; } = 0;
+        public int TotalTiles { get; set; } = 0;
+    }
 }

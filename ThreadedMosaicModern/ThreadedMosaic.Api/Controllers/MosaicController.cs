@@ -22,6 +22,7 @@ namespace ThreadedMosaic.Api.Controllers
         private readonly IPhotoMosaicService _photoMosaicService;
         private readonly IMosaicProcessingResultRepository _mosaicResultRepository;
         private readonly IMosaicCancellationService _cancellationService;
+        private readonly IImageProcessingService _imageProcessingService;
         private readonly ILogger<MosaicController> _logger;
 
         public MosaicController(
@@ -30,6 +31,7 @@ namespace ThreadedMosaic.Api.Controllers
             IPhotoMosaicService photoMosaicService,
             IMosaicProcessingResultRepository mosaicResultRepository,
             IMosaicCancellationService cancellationService,
+            IImageProcessingService imageProcessingService,
             ILogger<MosaicController> logger)
         {
             _colorMosaicService = colorMosaicService ?? throw new ArgumentNullException(nameof(colorMosaicService));
@@ -37,6 +39,7 @@ namespace ThreadedMosaic.Api.Controllers
             _photoMosaicService = photoMosaicService ?? throw new ArgumentNullException(nameof(photoMosaicService));
             _mosaicResultRepository = mosaicResultRepository ?? throw new ArgumentNullException(nameof(mosaicResultRepository));
             _cancellationService = cancellationService ?? throw new ArgumentNullException(nameof(cancellationService));
+            _imageProcessingService = imageProcessingService ?? throw new ArgumentNullException(nameof(imageProcessingService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -394,23 +397,63 @@ namespace ThreadedMosaic.Api.Controllers
         /// Get a preview/thumbnail of the processing mosaic
         /// </summary>
         /// <param name="id">Mosaic ID</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Preview image bytes</returns>
         [HttpGet("{id}/preview")]
         [SwaggerOperation(Summary = "Get mosaic preview", Description = "Gets a preview/thumbnail of the processing mosaic")]
         [SwaggerResponse(200, "Preview retrieved successfully", typeof(byte[]))]
         [SwaggerResponse(404, "Mosaic or preview not found")]
-        public Task<ActionResult> GetMosaicPreview(Guid id)
+        [SwaggerResponse(400, "Mosaic not completed yet")]
+        public async Task<ActionResult> GetMosaicPreview(Guid id, CancellationToken cancellationToken = default)
         {
             try
             {
-                // TODO: Implement preview generation
                 _logger.LogInformation("Getting preview for mosaic: {MosaicId}", id);
-                return Task.FromResult<ActionResult>(NotFound(new { id, message = "Preview generation not yet implemented" }));
+                
+                // Check if the mosaic exists
+                var mosaicResult = await _mosaicResultRepository.GetByIdAsync(id, cancellationToken);
+                if (mosaicResult == null)
+                {
+                    _logger.LogWarning("Mosaic not found: {MosaicId}", id);
+                    return NotFound(new { id, error = "Mosaic not found" });
+                }
+                
+                // Check if the mosaic has an output file
+                if (string.IsNullOrEmpty(mosaicResult.OutputPath) || !System.IO.File.Exists(mosaicResult.OutputPath))
+                {
+                    if (mosaicResult.Status == MosaicStatus.Completed)
+                    {
+                        _logger.LogWarning("Mosaic {MosaicId} is completed but output file not found at: {OutputPath}", id, mosaicResult.OutputPath);
+                        return NotFound(new { id, error = "Mosaic output file not found" });
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Mosaic {MosaicId} is not yet completed (Status: {Status})", id, mosaicResult.Status);
+                        return BadRequest(new { id, status = mosaicResult.Status.ToString(), error = "Mosaic is not yet completed" });
+                    }
+                }
+                
+                // Generate thumbnail/preview
+                const int maxPreviewWidth = 400;
+                const int maxPreviewHeight = 300;
+                
+                var previewBytes = await _imageProcessingService.CreateThumbnailAsync(
+                    mosaicResult.OutputPath, 
+                    maxPreviewWidth, 
+                    maxPreviewHeight, 
+                    cancellationToken);
+                
+                _logger.LogInformation("Generated preview for mosaic {MosaicId} ({Size} bytes)", id, previewBytes.Length);
+                
+                // Determine content type based on the original file extension
+                var contentType = GetImageContentType(mosaicResult.OutputPath);
+                
+                return File(previewBytes, contentType);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting mosaic preview for ID: {MosaicId}", id);
-                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while getting mosaic preview" }));
+                return StatusCode(500, new { error = "An error occurred while getting mosaic preview" });
             }
         }
 
@@ -418,25 +461,93 @@ namespace ThreadedMosaic.Api.Controllers
         /// Download the completed mosaic result
         /// </summary>
         /// <param name="id">Mosaic ID</param>
+        /// <param name="download">If true, forces download; if false, displays inline</param>
+        /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Mosaic image file</returns>
         [HttpGet("{id}/result")]
         [SwaggerOperation(Summary = "Download mosaic result", Description = "Downloads the completed mosaic image")]
         [SwaggerResponse(200, "Mosaic downloaded successfully")]
         [SwaggerResponse(404, "Mosaic not found")]
         [SwaggerResponse(400, "Mosaic not completed")]
-        public Task<ActionResult> GetMosaicResult(Guid id)
+        public async Task<ActionResult> GetMosaicResult(Guid id, [FromQuery] bool download = true, CancellationToken cancellationToken = default)
         {
             try
             {
-                // TODO: Implement result file serving
-                _logger.LogInformation("Getting result for mosaic: {MosaicId}", id);
-                return Task.FromResult<ActionResult>(NotFound(new { id, message = "Result serving not yet implemented" }));
+                _logger.LogInformation("Getting result for mosaic: {MosaicId} (download: {Download})", id, download);
+                
+                // Check if the mosaic exists
+                var mosaicResult = await _mosaicResultRepository.GetByIdAsync(id, cancellationToken);
+                if (mosaicResult == null)
+                {
+                    _logger.LogWarning("Mosaic not found: {MosaicId}", id);
+                    return NotFound(new { id, error = "Mosaic not found" });
+                }
+                
+                // Check if the mosaic is completed
+                if (mosaicResult.Status != MosaicStatus.Completed)
+                {
+                    _logger.LogInformation("Mosaic {MosaicId} is not completed (Status: {Status})", id, mosaicResult.Status);
+                    return BadRequest(new { id, status = mosaicResult.Status.ToString(), error = "Mosaic is not completed" });
+                }
+                
+                // Check if the output file exists
+                if (string.IsNullOrEmpty(mosaicResult.OutputPath) || !System.IO.File.Exists(mosaicResult.OutputPath))
+                {
+                    _logger.LogWarning("Mosaic {MosaicId} output file not found at: {OutputPath}", id, mosaicResult.OutputPath);
+                    return NotFound(new { id, error = "Mosaic output file not found" });
+                }
+                
+                // Read the file
+                var fileBytes = await System.IO.File.ReadAllBytesAsync(mosaicResult.OutputPath, cancellationToken);
+                var fileName = Path.GetFileName(mosaicResult.OutputPath);
+                var contentType = GetImageContentType(mosaicResult.OutputPath);
+                
+                _logger.LogInformation("Serving mosaic result {MosaicId}: {FileName} ({Size} bytes)", id, fileName, fileBytes.Length);
+                
+                // Set appropriate headers
+                if (download)
+                {
+                    // Force download with appropriate filename
+                    var downloadFileName = $"mosaic_{id}_{fileName}";
+                    Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{downloadFileName}\"");
+                }
+                else
+                {
+                    // Display inline (for preview in browser)
+                    Response.Headers.Append("Content-Disposition", "inline");
+                }
+                
+                // Add cache headers for performance
+                Response.Headers.Append("Cache-Control", "public, max-age=3600");
+                Response.Headers.Append("Last-Modified", System.IO.File.GetLastWriteTimeUtc(mosaicResult.OutputPath).ToString("R"));
+                
+                return File(fileBytes, contentType, download ? $"mosaic_{id}_{fileName}" : null);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting mosaic result for ID: {MosaicId}", id);
-                return Task.FromResult<ActionResult>(StatusCode(500, new { error = "An error occurred while getting mosaic result" }));
+                return StatusCode(500, new { error = "An error occurred while getting mosaic result" });
             }
+        }
+        
+        /// <summary>
+        /// Gets the appropriate content type for an image file based on its extension
+        /// </summary>
+        /// <param name="filePath">Path to the image file</param>
+        /// <returns>MIME content type string</returns>
+        private static string GetImageContentType(string filePath)
+        {
+            var extension = Path.GetExtension(filePath).ToLowerInvariant();
+            return extension switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".bmp" => "image/bmp",
+                ".webp" => "image/webp",
+                ".tiff" or ".tif" => "image/tiff",
+                _ => "image/jpeg" // Default to JPEG
+            };
         }
     }
 }
